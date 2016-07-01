@@ -20,7 +20,7 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
 
     private float[] values = new float[9];
     Matrix imageMatrix = new Matrix();
-    private float[] current_coordinates = new float[2];
+    public float[] lastTouchCoordinates = new float[2];
 
     public modifiedSubsamplingScaleImageView(Context context, AttributeSet attr) {
         super(context, attr);
@@ -37,32 +37,21 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
             return super.onTouchEvent(event);
         }
 
-        // Handle touch events here...
+        // We're only handling MotionEvent.ACTION_UP here.
         dumpEvent(event);
         imageMatrix = getMatrix();
         imageMatrix.getValues(values);
 
-        switch (event.getAction() & MotionEvent.ACTION_MASK) {
-            case MotionEvent.ACTION_DOWN:
-                break;
-            case MotionEvent.ACTION_POINTER_DOWN:
-                break;
-            case MotionEvent.ACTION_UP:
-                float relativeX = mathFunctions.round(((event.getX() - values[2]) / values[0]), 2);
-                float relativeY = mathFunctions.round(((event.getY() - values[5]) / values[4]), 2);
-                PointF point = viewToSourceCoord(relativeX, relativeY);
-                current_coordinates[0] = point.x;
-                current_coordinates[1] = point.y;
-                break;
-            case MotionEvent.ACTION_POINTER_UP:
-                break;
-            case MotionEvent.ACTION_MOVE:
-                break;
-        }
+
+        float relativeX = mathFunctions.round(((event.getX() - values[2]) / values[0]), 2);
+        float relativeY = mathFunctions.round(((event.getY() - values[5]) / values[4]), 2);
+        PointF point = viewToSourceCoord(relativeX, relativeY);
+        lastTouchCoordinates[0] = point.x;
+        lastTouchCoordinates[1] = point.y;
 
         // Show selected coordinates on screen and/or log.
-        Log.d(TAG, "X-Coordinate: " + current_coordinates[0]);
-        Log.d(TAG, "Y-Coordinate: " + current_coordinates[1]);
+        Log.d(TAG, "X-Coordinate: " + lastTouchCoordinates[0]);
+        Log.d(TAG, "Y-Coordinate: " + lastTouchCoordinates[1]);
 
         return true;
     }
