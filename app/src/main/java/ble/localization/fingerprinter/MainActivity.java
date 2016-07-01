@@ -5,14 +5,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
-import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 
 import com.estimote.sdk.Beacon;
 import com.estimote.sdk.BeaconManager;
 import com.estimote.sdk.Region;
 import com.estimote.sdk.SystemRequirementsChecker;
-
-import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,16 +17,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import cern.colt.list.DoubleArrayList;
-import cern.jet.stat.Descriptive;
-
 // To jsonify: https://developer.android.com/reference/org/json/JSONObject.html
+// Fingerprinting countdown: http://stackoverflow.com/questions/10780651/display-a-countdown-timer-in-the-alert-dialog-box
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int PERCENT_CUTOFF = 15;
+    private static final int DECIMAL_PLACES = 2;
+    private static final String TAG = "FingerprinterMain";
 
-    private SubsamplingScaleImageView imageView;
+    private modifiedSubsamplingScaleImageView imageView;
 
     private BeaconManager beaconManager;
     private Region region;
@@ -47,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
         loading_dialog.setCancelable(false);
         loading_dialog.setCanceledOnTouchOutside(false);
 
-        imageView = (SubsamplingScaleImageView)findViewById(R.id.imageView);
+        imageView = (modifiedSubsamplingScaleImageView)findViewById(R.id.imageView);
         imageView.setImage(ImageSource.resource(R.drawable.home_floor_plan));
 
         loading_dialog.dismiss();
@@ -67,15 +64,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public static double trimmean(final ArrayList<Double> arr_list, final int percent) {
-        Double[] arr2 = arr_list.toArray(new Double[arr_list.size()]);
-        double[] arr = ArrayUtils.toPrimitive(arr2);
+    protected void do_fingerprinting() {
 
-        final int n = arr.length;
-        final int k = (int)Math.round(n * (percent / 100.0) / 2.0);
-        final DoubleArrayList list = new DoubleArrayList(arr);
-        list.sort();
-
-        return Descriptive.trimmedMean(list, Descriptive.mean(list), k, k);
     }
 }
