@@ -1,8 +1,13 @@
 package ble.localization.fingerprinter;
 
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.widget.TextView;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
 
@@ -33,7 +38,11 @@ public class MainActivity extends AppCompatActivity {
     // When ready to range, "beaconManager.startRanging(region);"
     // When stopping, "beaconManager.stopRanging(region);"
 
-    Map<Integer, ArrayList<Integer>> beacon_rssi_values = new HashMap<>();
+    private TextView coordView;
+    private BroadcastReceiver coordinateChangeReceiver = new coordinateChangeReceiver();
+    private IntentFilter filter = new IntentFilter(modifiedSubsamplingScaleImageView.BROADCAST_ACTION);
+
+    private Map<Integer, ArrayList<Integer>> beacon_rssi_values = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,11 +53,15 @@ public class MainActivity extends AppCompatActivity {
         loading_dialog.setCancelable(false);
         loading_dialog.setCanceledOnTouchOutside(false);
 
-        imageView = (modifiedSubsamplingScaleImageView)findViewById(R.id.imageView);
+        imageView = (modifiedSubsamplingScaleImageView)findViewById(R.id.mapView);
         imageView.setImage(ImageSource.resource(R.drawable.home_floor_plan));
 
         loading_dialog.dismiss();
 
+        coordView = (TextView)findViewById(R.id.coordinateText);
+        this.registerReceiver(coordinateChangeReceiver, filter);
+
+        // Estimote-related code
         SystemRequirementsChecker.checkWithDefaultDialogs(this);
 
         beaconManager = new BeaconManager(this);
@@ -64,7 +77,29 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    protected void do_fingerprinting() {
-
+    @Override
+    public void onResume() {
+        super.onResume();
+        this.registerReceiver(coordinateChangeReceiver, filter);
     }
+
+    @Override
+    public void onPause() {
+        this.unregisterReceiver(this.coordinateChangeReceiver);
+        super.onPause();
+    }
+
+    protected void do_fingerprinting() {
+        // Actual fingerprinting code
+    }
+
+    // Receives notification that the selected coordinates have been changed.
+    private class coordinateChangeReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Change coordinates on screen
+            coordView.setText("(" + imageView.lastTouchCoordinates[0] + ", " + imageView.lastTouchCoordinates[1] + ")");
+        }
+    }
+
 }

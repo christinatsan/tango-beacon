@@ -1,6 +1,7 @@
 package ble.localization.fingerprinter;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Matrix;
 import android.graphics.PointF;
 import android.support.annotation.NonNull;
@@ -17,6 +18,9 @@ import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView implements View.OnTouchListener {
 
     public static final String TAG = "ImageView";
+    public static String BROADCAST_ACTION = "ble.localization.fingerprinter.MainActivity.SHOW_COORDINATES";
+
+    protected Context context;
 
     private float[] values = new float[9];
     Matrix imageMatrix = new Matrix();
@@ -24,6 +28,7 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
 
     public modifiedSubsamplingScaleImageView(Context context, AttributeSet attr) {
         super(context, attr);
+        this.context = context;
     }
 
     @Override
@@ -53,6 +58,10 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
         Log.d(TAG, "X-Coordinate: " + lastTouchCoordinates[0]);
         Log.d(TAG, "Y-Coordinate: " + lastTouchCoordinates[1]);
 
+        // Tell the MainActivity that we changed the coordinates.
+        Intent in = new Intent(BROADCAST_ACTION);
+        context.sendBroadcast(in);
+
         return true;
     }
 
@@ -81,4 +90,5 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
         sb.append("]" );
         Log.d(TAG, sb.toString());
     }
+
 }
