@@ -2,6 +2,7 @@ package ble.localization.fingerprinter;
 
 import android.content.Context;
 import android.graphics.Matrix;
+import android.graphics.PointF;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -47,10 +48,11 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
             case MotionEvent.ACTION_POINTER_DOWN:
                 break;
             case MotionEvent.ACTION_UP:
-                float relativeX = mathFunctions.round(((event.getRawX() - values[2]) / values[0]), 2);
-                float relativeY = mathFunctions.round(((event.getRawY() - values[5]) / values[4]), 2);
-                current_coordinates[0] = relativeX;
-                current_coordinates[1] = relativeY;
+                float relativeX = mathFunctions.round(((event.getX() - values[2]) / values[0]), 2);
+                float relativeY = mathFunctions.round(((event.getY() - values[5]) / values[4]), 2);
+                PointF point = viewToSourceCoord(relativeX, relativeY);
+                current_coordinates[0] = point.x;
+                current_coordinates[1] = point.y;
                 break;
             case MotionEvent.ACTION_POINTER_UP:
                 break;
