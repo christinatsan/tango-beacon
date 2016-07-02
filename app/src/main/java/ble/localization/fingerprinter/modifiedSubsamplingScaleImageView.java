@@ -22,8 +22,8 @@ import java.util.Arrays;
  */
 public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView implements View.OnTouchListener {
 
-    private static final String TAG = "ImageView";
-    public static final String BROADCAST_ACTION = "ble.localization.fingerprinter.MainActivity.SHOW_COORDINATES";
+    private static final String TAG = "MapView";
+    public static final String BROADCAST_ACTION = "ble.localization.fingerprinter.MainActivity.COORDINATES_CHANGED";
     private static final int defaultCoord = -1;
     private static final int actionToBeHandled = MotionEvent.ACTION_UP;
 
@@ -97,9 +97,7 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
         Intent in = new Intent(BROADCAST_ACTION);
         context.sendBroadcast(in);
 
-        if ((event.getAction() & MotionEvent.ACTION_MASK) == actionToBeHandled) {
-            invalidate();
-        }
+        invalidate();
 
         return true;
     }
