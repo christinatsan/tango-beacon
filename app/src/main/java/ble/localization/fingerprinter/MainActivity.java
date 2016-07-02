@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
@@ -17,6 +19,7 @@ import com.estimote.sdk.Region;
 import com.estimote.sdk.SystemRequirementsChecker;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int PERCENT_CUTOFF = 15;
     private static final int DECIMAL_PLACES = 2;
-    private static final String TAG = "FingerprinterMain";
+    private static final String TAG = "MainActivity";
 
     private modifiedSubsamplingScaleImageView imageView;
 
@@ -61,6 +64,24 @@ public class MainActivity extends AppCompatActivity {
         coordView = (TextView)findViewById(R.id.coordinateText);
         this.registerReceiver(coordinateChangeReceiver, filter);
 
+        final Button fingerprintButton = (Button)findViewById(R.id.fingerprintButton);
+        assert (fingerprintButton != null);
+        fingerprintButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                do_fingerprinting();
+            }
+        });
+
+        final Button clearButton = (Button)findViewById(R.id.clearButton);
+        assert (clearButton != null);
+        clearButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                clearCoordinates();
+            }
+        });
+
         // Estimote-related code
         SystemRequirementsChecker.checkWithDefaultDialogs(this);
 
@@ -73,7 +94,6 @@ public class MainActivity extends AppCompatActivity {
                 // Beacon discovery code goes here.
             }
         });
-
 
     }
 
@@ -89,8 +109,14 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
     }
 
-    protected void do_fingerprinting() {
+    private void do_fingerprinting() {
         // Actual fingerprinting code
+    }
+
+    private void clearCoordinates() {
+        Arrays.fill(imageView.lastTouchCoordinates, -1);
+        coordView.setText("None");
+        imageView.invalidate();
     }
 
     // Receives notification that the selected coordinates have been changed.

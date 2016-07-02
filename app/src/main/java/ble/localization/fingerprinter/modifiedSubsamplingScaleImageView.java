@@ -22,7 +22,7 @@ import java.util.Arrays;
  */
 public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView implements View.OnTouchListener {
 
-    public static final String TAG = "ImageView";
+    private static final String TAG = "ImageView";
     public static final String BROADCAST_ACTION = "ble.localization.fingerprinter.MainActivity.SHOW_COORDINATES";
     private static final int defaultCoord = -1;
     private static final int actionToBeHandled = MotionEvent.ACTION_UP;
@@ -32,6 +32,8 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
     private float[] values = new float[9];
     Matrix imageMatrix = new Matrix();
     public float[] lastTouchCoordinates = new float[2];
+
+    Paint paint = new Paint();
 
 
     public modifiedSubsamplingScaleImageView(Context context, AttributeSet attr) {
@@ -53,7 +55,6 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
 
         float radius = (getScale() * getSWidth()) * 0.01f;
 
-        Paint paint = new Paint();
         paint.setAntiAlias(true);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeCap(Paint.Cap.ROUND);
