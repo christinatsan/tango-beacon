@@ -2,7 +2,10 @@ package ble.localization.fingerprinter;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.PointF;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
@@ -12,13 +15,17 @@ import android.view.View;
 
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 
+import java.util.Arrays;
+
 /**
  * Created by vishnunair on 7/1/16.
  */
 public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView implements View.OnTouchListener {
 
     public static final String TAG = "ImageView";
-    public static String BROADCAST_ACTION = "ble.localization.fingerprinter.MainActivity.SHOW_COORDINATES";
+    public static final String BROADCAST_ACTION = "ble.localization.fingerprinter.MainActivity.SHOW_COORDINATES";
+    private static final int defaultCoord = -1;
+    private static final int actionToBeHandled = MotionEvent.ACTION_UP;
 
     protected Context context;
 
@@ -26,9 +33,36 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
     Matrix imageMatrix = new Matrix();
     public float[] lastTouchCoordinates = new float[2];
 
+
     public modifiedSubsamplingScaleImageView(Context context, AttributeSet attr) {
         super(context, attr);
         this.context = context;
+        Arrays.fill(lastTouchCoordinates, defaultCoord);
+    }
+
+    @Override
+    public void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+
+        if(lastTouchCoordinates[0] == defaultCoord && lastTouchCoordinates[1] == defaultCoord) return;
+
+        float density = getResources().getDisplayMetrics().densityDpi;
+        int strokeWidth = (int)(density/60f);
+
+        PointF view_coords = sourceToViewCoord(lastTouchCoordinates[0], lastTouchCoordinates[1]);
+
+        float radius = (getScale() * getSWidth()) * 0.01f;
+
+        Paint paint = new Paint();
+        paint.setAntiAlias(true);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeCap(Paint.Cap.ROUND);
+        paint.setStrokeWidth(strokeWidth * 2);
+        paint.setColor(Color.BLUE);
+        canvas.drawCircle(view_coords.x, view_coords.y, radius, paint);
+        paint.setStrokeWidth(strokeWidth);
+        paint.setColor(Color.argb(255, 51, 181, 229));
+        canvas.drawCircle(view_coords.x, view_coords.y, radius, paint);
     }
 
     @Override
@@ -38,7 +72,7 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
 
     @Override
     public boolean onTouchEvent(@NonNull MotionEvent event) {
-        if ((event.getAction() & MotionEvent.ACTION_MASK) != MotionEvent.ACTION_UP) {
+        if ((event.getAction() & MotionEvent.ACTION_MASK) != actionToBeHandled) {
             return super.onTouchEvent(event);
         }
 
@@ -61,6 +95,10 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
         // Tell the MainActivity that we changed the coordinates.
         Intent in = new Intent(BROADCAST_ACTION);
         context.sendBroadcast(in);
+
+        if ((event.getAction() & MotionEvent.ACTION_MASK) == actionToBeHandled) {
+            invalidate();
+        }
 
         return true;
     }
