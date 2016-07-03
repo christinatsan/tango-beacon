@@ -82,7 +82,6 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
         imageMatrix = getMatrix();
         imageMatrix.getValues(values);
 
-
         float relativeX = mathFunctions.floatRound(((event.getX() - values[2]) / values[0]), 2);
         float relativeY = mathFunctions.floatRound(((event.getY() - values[5]) / values[4]), 2);
         PointF point = viewToSourceCoord(relativeX, relativeY);

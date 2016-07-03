@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.UUID;
 
 // To jsonify: https://developer.android.com/reference/org/json/JSONObject.html
-// Fingerprinting countdown: http://stackoverflow.com/questions/10780651/display-a-countdown-timer-in-the-alert-dialog-box
 
 public class MainActivity extends AppCompatActivity {
 
@@ -195,6 +194,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "Ranging stopped.");
                 progressDialog.dismiss();
 
+                // Send intent
                 final Intent nextPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
                 nextPhaseBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, PHASE_TWO_BROADCAST);
                 getApplicationContext().sendBroadcast(nextPhaseBroadcast);
@@ -230,12 +230,13 @@ public class MainActivity extends AppCompatActivity {
                             for(Integer rssi : beaconRssiValues.get(key)) {
                                 RSSIs.add((double)rssi);
                             }
-                            Double avg = mathFunctions.doubleRound(mathFunctions.trimmedMean(RSSIs, PERCENT_CUTOFF), 2);
+                            Double avg = mathFunctions.doubleRound(mathFunctions.trimmedMean(RSSIs, PERCENT_CUTOFF), DECIMAL_PLACES);
                             averageBeaconRSSIValues.put(key, avg);
                         }
 
                         Log.v(TAG, "AVERAGED Values: " + averageBeaconRSSIValues.toString());
 
+                        // Send intent
                         final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
                         finalPhaseBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, PHASE_THREE_BROADCAST);
                         getApplicationContext().sendBroadcast(finalPhaseBroadcast);
@@ -256,9 +257,14 @@ public class MainActivity extends AppCompatActivity {
     private void sendValues() {
         Log.d(TAG, "Sending values.");
 
+        // Send intent
         final Intent notifyBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
         notifyBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, NOTIFY_COMPLETE_BROADCAST);
         getApplicationContext().sendBroadcast(notifyBroadcast);
+
+        // Clear maps to prepare for next fingerprint
+        beaconRssiValues.clear();
+        averageBeaconRSSIValues.clear();
     }
 
     private void clearCoordinates() {
@@ -297,7 +303,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
 
                 case NOTIFY_COMPLETE_BROADCAST:
-                    showSnackbar("Fingerprint complete at (" + imageView.lastTouchCoordinates[0] + ", " + imageView.lastTouchCoordinates[1] + ").");
+                    showSnackbar("Fingerprinting complete at (" + imageView.lastTouchCoordinates[0] + ", " + imageView.lastTouchCoordinates[1] + ").");
                     break;
 
             }
