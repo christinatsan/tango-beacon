@@ -13,10 +13,12 @@ import cern.jet.stat.Descriptive;
  */
 public class mathFunctions {
 
-    public static float round(float d, int decimalPlace) {
-        BigDecimal bd = new BigDecimal(Float.toString(d));
-        bd = bd.setScale(decimalPlace, BigDecimal.ROUND_HALF_UP);
-        return bd.floatValue();
+    public static float floatRound(float d, int decimalPlace) {
+        return (float)(Math.round(d * Math.pow(10, decimalPlace)) / Math.pow(10, decimalPlace));
+    }
+
+    public static double doubleRound(double d, int decimalPlace) {
+        return Math.round(d * Math.pow(10, decimalPlace)) / Math.pow(10, decimalPlace);
     }
 
     public static double trimmedMean(final ArrayList<Double> arr_list, final int percent) {

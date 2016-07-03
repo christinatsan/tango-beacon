@@ -62,8 +62,8 @@ public class MainActivity extends AppCompatActivity {
     public static final String PHASE_THREE_BROADCAST = "BEGIN_TRANSMISSION";
     public static final String NOTIFY_COMPLETE_BROADCAST = "SHOW_SUCCESS_MESSAGE";
 
-    private Map<Integer, ArrayList<Integer>> beacon_rssi_values = new HashMap<>();
-
+    private Map<Integer, ArrayList<Integer>> beaconRssiValues = new HashMap<>();
+    private Map<Integer, Double> averageBeaconRSSIValues = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,10 +110,10 @@ public class MainActivity extends AppCompatActivity {
             public void onBeaconsDiscovered(Region region, List<Beacon> list) {
                 // Beacon discovery code goes here.
                 for(Beacon b : list) {
-                    if(!beacon_rssi_values.containsKey(b.getMajor())) {
-                        beacon_rssi_values.put(b.getMajor(), new ArrayList<Integer>());
+                    if(!beaconRssiValues.containsKey(b.getMajor())) {
+                        beaconRssiValues.put(b.getMajor(), new ArrayList<Integer>());
                     }
-                    beacon_rssi_values.get(b.getMajor()).add(b.getRssi());
+                    beaconRssiValues.get(b.getMajor()).add(b.getRssi());
                 }
             }
         });
@@ -206,12 +206,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void processValues() {
         Log.d(TAG, "Processing values.");
-        Log.v(TAG, "ALL Values: " + beacon_rssi_values.toString());
+        Log.v(TAG, "ALL Values: " + beaconRssiValues.toString());
 
         String message = "In this fingerprint, the following number of RSSIs were collected for each of the following beacons:\n";
 
-        for(Integer key : beacon_rssi_values.keySet()) {
-            message += (key + " - " + beacon_rssi_values.get(key).size() + " values.\n");
+        for(Integer key : beaconRssiValues.keySet()) {
+            message += (key + " - " + beaconRssiValues.get(key).size() + " values.\n");
         }
         message += "\nWould you like to submit this fingerprint?";
 
@@ -225,6 +225,16 @@ public class MainActivity extends AppCompatActivity {
                         dialog.dismiss();
 
                         // Process some more.
+                        for(Integer key : beaconRssiValues.keySet()) {
+                            ArrayList<Double> RSSIs = new ArrayList<>();
+                            for(Integer rssi : beaconRssiValues.get(key)) {
+                                RSSIs.add((double)rssi);
+                            }
+                            Double avg = mathFunctions.doubleRound(mathFunctions.trimmedMean(RSSIs, PERCENT_CUTOFF), 2);
+                            averageBeaconRSSIValues.put(key, avg);
+                        }
+
+                        Log.v(TAG, "AVERAGED Values: " + averageBeaconRSSIValues.toString());
 
                         final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
                         finalPhaseBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, PHASE_THREE_BROADCAST);
@@ -236,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
                         showSnackbar("Fingerprinting canceled.");
-                        beacon_rssi_values.clear();
+                        beaconRssiValues.clear();
                     }
                 })
                 .setCancelable(false)
