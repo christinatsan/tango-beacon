@@ -155,34 +155,12 @@ public class MainActivity extends AppCompatActivity {
     private void beginFingerprinting() {
         // Actual fingerprinting code
         if(!isEstimoteRangingServiceReady) {
-            final AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
-            alertDialog.setTitle("Beacon Ranging Not Ready");
-            alertDialog.setMessage("Please wait until the ranging service is ready.");
-            alertDialog.setPositiveButton("OK",
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog,
-                                            int which) {
-                            dialog.dismiss();
-                        }
-                    });
-            alertDialog.show();
+            showDialogWithOKButton("Beacon Ranging Not Ready", "Please wait until the ranging service is ready.");
             return;
         }
 
         if(imageView.lastTouchCoordinates[0] == -1 && imageView.lastTouchCoordinates[1] == -1) {
-            final AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
-            alertDialog.setTitle("Select Coordinates");
-            alertDialog.setMessage("Please select coordinates before fingerprinting.");
-            alertDialog.setPositiveButton("OK",
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog,
-                                            int which) {
-                            dialog.dismiss();
-                        }
-                    });
-            alertDialog.show();
+            showDialogWithOKButton("Select Coordinates", "Please select coordinates before fingerprinting.");
             return;
         }
 
@@ -228,10 +206,41 @@ public class MainActivity extends AppCompatActivity {
 
     private void processValues() {
         Log.d(TAG, "Processing values.");
+        Log.v(TAG, "ALL Values: " + beacon_rssi_values.toString());
 
-        final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
-        finalPhaseBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, PHASE_THREE_BROADCAST);
-        getApplicationContext().sendBroadcast(finalPhaseBroadcast);
+        String message = "In this fingerprint, the following number of RSSIs were collected for each of the following beacons:\n";
+
+        for(Integer key : beacon_rssi_values.keySet()) {
+            message += (key + " - " + beacon_rssi_values.get(key).size() + " values.\n");
+        }
+        message += "\nWould you like to submit this fingerprint?";
+
+
+        new AlertDialog.Builder(this)
+                .setTitle("Confirm Fingerprint")
+                .setMessage(message)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+
+                        // Process some more.
+
+                        final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
+                        finalPhaseBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, PHASE_THREE_BROADCAST);
+                        getApplicationContext().sendBroadcast(finalPhaseBroadcast);
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        showSnackbar("Fingerprinting canceled.");
+                        beacon_rssi_values.clear();
+                    }
+                })
+                .setCancelable(false)
+                .show();
     }
 
     private void sendValues() {
@@ -240,12 +249,6 @@ public class MainActivity extends AppCompatActivity {
         final Intent notifyBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
         notifyBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, NOTIFY_COMPLETE_BROADCAST);
         getApplicationContext().sendBroadcast(notifyBroadcast);
-    }
-
-    private void showSnackbar(String snackbarText) {
-        Snackbar
-                .make(this.findViewById(android.R.id.content), snackbarText, 3000)
-                .show();
     }
 
     private void clearCoordinates() {
@@ -292,4 +295,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void showSnackbar(String snackbarText) {
+        Snackbar
+                .make(this.findViewById(android.R.id.content), snackbarText, 3000)
+                .show();
+    }
+
+    private void showDialogWithOKButton(String title, String message) {
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                })
+                .show();
+    }
 }
