@@ -23,6 +23,9 @@ import com.estimote.sdk.BeaconManager;
 import com.estimote.sdk.Region;
 import com.estimote.sdk.SystemRequirementsChecker;
 
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.AsyncHttpResponseHandler;
+
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -33,6 +36,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import cz.msebera.android.httpclient.Header;
+import cz.msebera.android.httpclient.entity.StringEntity;
+import cz.msebera.android.httpclient.message.BasicHeader;
+import cz.msebera.android.httpclient.protocol.HTTP;
+
 // To jsonify: https://developer.android.com/reference/org/json/JSONObject.html
 
 public class MainActivity extends AppCompatActivity {
@@ -41,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int DECIMAL_PLACES = 2;
     private static final String TAG = "MainActivity";
     private static final int timeToRecord = 15000;
+    public static final String BASE_SERVER_URL = "http://192.168.0.10:5000";
 
     private ModifiedSubsamplingScaleImageView imageView;
 
@@ -289,13 +298,61 @@ public class MainActivity extends AppCompatActivity {
     private void sendValues() {
         Log.d(TAG, "Sending values.");
 
-        // Send intent
-        final Intent notifyBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
-        notifyBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, fingerprintingPhase.SHOW_SUCCESS_MESSAGE);
-        getApplicationContext().sendBroadcast(notifyBroadcast);
+        AsyncHttpClient client = new AsyncHttpClient();
+        StringEntity json = new StringEntity(jsonFingerprintRequestString, "UTF-8");
+        json.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
 
-        // Clear maps to prepare for next fingerprint
-        clearMaps();
+        final ProgressDialog progressDialog = new ProgressDialog(MainActivity.this);
+        progressDialog.setTitle("Sending values...");
+        progressDialog.setMessage("Please wait.");
+        progressDialog.setIndeterminate(true);
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        client.post(MainActivity.this, BASE_SERVER_URL + "/fingerprint", json, "application/json", new AsyncHttpResponseHandler() {
+
+            @Override
+            public void onStart() {
+                // Initiated the request
+            }
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                // Successfully got a response
+                // Send intent to complete process
+                final Intent notifyBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
+                notifyBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, fingerprintingPhase.SHOW_SUCCESS_MESSAGE);
+                getApplicationContext().sendBroadcast(notifyBroadcast);
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error)
+            {
+                // Response failed
+                showDialogWithOKButton("Sending Failed", "Sending fingerprint data failed. (Server response code: " + statusCode + ")\n\nFingerprinting has been aborted.");
+                showSnackbar("Fingerprinting failed.");
+            }
+
+            @Override
+            public void onRetry(int retryNo) {
+                // Request was retried
+                progressDialog.setTitle("Sending values...Attempt #" + retryNo);
+            }
+
+            @Override
+            public void onProgress(long bytesWritten, long totalSize) {
+                // Progress notification
+                progressDialog.setMessage("Please wait. " + bytesWritten + " of " + totalSize + " bytes sent.");
+            }
+
+            @Override
+            public void onFinish() {
+                // Completed the request (either success or failure)
+                progressDialog.dismiss();
+                // Clear maps to prepare for next fingerprint
+                clearMaps();
+            }
+        });
     }
 
     private void clearCoordinates() {
@@ -359,6 +416,7 @@ public class MainActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle(title)
                 .setMessage(message)
+                .setCancelable(false)
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
