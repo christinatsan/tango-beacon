@@ -58,10 +58,13 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String FINGERPRINT_BROADCAST_ACTION = "ble.localization.fingerprinter.FINGERPRINT";
     public static final String BROADCAST_PAYLOAD_KEY = "TARGET_PHASE";
-    public static final String PHASE_ONE_BROADCAST = "BEGIN_RSSI_RETRIEVAL";
-    public static final String PHASE_TWO_BROADCAST = "BEGIN_PROCESSING";
-    public static final String PHASE_THREE_BROADCAST = "BEGIN_TRANSMISSION";
-    public static final String NOTIFY_COMPLETE_BROADCAST = "SHOW_SUCCESS_MESSAGE";
+
+    public enum fingerprintingPhase {
+        PHASE_ONE,
+        PHASE_TWO,
+        PHASE_THREE,
+        SHOW_SUCCESS_MESSAGE;
+    }
 
     private Map<Integer, ArrayList<Integer>> beaconRssiValues = new HashMap<>();
     private Map<Integer, Double> averageBeaconRSSIValues = new HashMap<>();
@@ -174,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Send intent
         final Intent beginFingerprinting = new Intent(FINGERPRINT_BROADCAST_ACTION);
-        beginFingerprinting.putExtra(BROADCAST_PAYLOAD_KEY, PHASE_ONE_BROADCAST);
+        beginFingerprinting.putExtra(BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_ONE);
         getApplicationContext().sendBroadcast(beginFingerprinting);
     }
 
@@ -203,7 +206,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // Send intent
                 final Intent nextPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
-                nextPhaseBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, PHASE_TWO_BROADCAST);
+                nextPhaseBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_TWO);
                 getApplicationContext().sendBroadcast(nextPhaseBroadcast);
                 Log.d(TAG, "Retrieval done.");
             }
@@ -268,7 +271,7 @@ public class MainActivity extends AppCompatActivity {
 
                         // Send intent
                         final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
-                        finalPhaseBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, PHASE_THREE_BROADCAST);
+                        finalPhaseBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_THREE);
                         getApplicationContext().sendBroadcast(finalPhaseBroadcast);
                     }
                 })
@@ -289,7 +292,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Send intent
         final Intent notifyBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
-        notifyBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, NOTIFY_COMPLETE_BROADCAST);
+        notifyBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, fingerprintingPhase.SHOW_SUCCESS_MESSAGE);
         getApplicationContext().sendBroadcast(notifyBroadcast);
 
         // Clear maps to prepare for next fingerprint
@@ -317,22 +320,22 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "Intent received.");
             final Bundle intentPayload = intent.getExtras();
-            final String target = intentPayload.getString(BROADCAST_PAYLOAD_KEY);
+            final fingerprintingPhase target = (fingerprintingPhase)intentPayload.get(BROADCAST_PAYLOAD_KEY);
 
             switch (target) {
-                case PHASE_ONE_BROADCAST:
+                case PHASE_ONE:
                     retrieveRSSIValues();
                     break;
 
-                case PHASE_TWO_BROADCAST:
+                case PHASE_TWO:
                     processValues();
                     break;
 
-                case PHASE_THREE_BROADCAST:
+                case PHASE_THREE:
                     sendValues();
                     break;
 
-                case NOTIFY_COMPLETE_BROADCAST:
+                case SHOW_SUCCESS_MESSAGE:
                     showSnackbar("Fingerprinting complete at (" + imageView.lastTouchCoordinates[0] + ", " + imageView.lastTouchCoordinates[1] + ").");
                     break;
 
