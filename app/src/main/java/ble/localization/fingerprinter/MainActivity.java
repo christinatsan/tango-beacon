@@ -225,7 +225,6 @@ public class MainActivity extends AppCompatActivity {
         }
         message += "\nWould you like to submit this fingerprint?";
 
-
         new AlertDialog.Builder(this)
                 .setTitle("Confirm Fingerprint")
                 .setMessage(message)
@@ -280,7 +279,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
                         showSnackbar("Fingerprinting canceled.");
-                        beaconRssiValues.clear();
+                        clearMaps();
                     }
                 })
                 .setCancelable(false)
@@ -296,14 +295,18 @@ public class MainActivity extends AppCompatActivity {
         getApplicationContext().sendBroadcast(notifyBroadcast);
 
         // Clear maps to prepare for next fingerprint
-        beaconRssiValues.clear();
-        averageBeaconRSSIValues.clear();
+        clearMaps();
     }
 
     private void clearCoordinates() {
         Arrays.fill(imageView.lastTouchCoordinates, -1);
         coordView.setText("None");
         imageView.invalidate();
+    }
+
+    private void clearMaps() {
+        beaconRssiValues.clear();
+        averageBeaconRSSIValues.clear();
     }
 
     // Receives notification that the selected coordinates have been changed.
@@ -321,6 +324,8 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "Intent received.");
             final Bundle intentPayload = intent.getExtras();
             final fingerprintingPhase target = (fingerprintingPhase)intentPayload.get(BROADCAST_PAYLOAD_KEY);
+
+            assert (target != null);
 
             switch (target) {
                 case PHASE_ONE:
