@@ -11,7 +11,7 @@ import cern.jet.stat.Descriptive;
 /**
  * Created by vishnunair on 7/1/16.
  */
-public class mathFunctions {
+public class MathFunctions {
 
     public static float floatRound(float d, int decimalPlace) {
         return (float)(Math.round(d * Math.pow(10, decimalPlace)) / Math.pow(10, decimalPlace));

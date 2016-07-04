@@ -23,6 +23,8 @@ import com.estimote.sdk.BeaconManager;
 import com.estimote.sdk.Region;
 import com.estimote.sdk.SystemRequirementsChecker;
 
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -40,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final int timeToRecord = 15000;
 
-    private modifiedSubsamplingScaleImageView imageView;
+    private ModifiedSubsamplingScaleImageView imageView;
 
     private BeaconManager beaconManager;
     private static final UUID beaconRegionUUID = UUID.fromString("B9407F30-F5F8-466E-AFF9-25556B57FE6D");
@@ -51,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView coordView;
     private BroadcastReceiver mCoordinateChangeReceiver = new coordinateChangeReceiver();
     private BroadcastReceiver mFingerprintReceiver = new fingerprintReceiver();
-    private IntentFilter coordinateChangeFilter = new IntentFilter(modifiedSubsamplingScaleImageView.BROADCAST_ACTION);
+    private IntentFilter coordinateChangeFilter = new IntentFilter(ModifiedSubsamplingScaleImageView.BROADCAST_ACTION);
     private IntentFilter fingerprintFilter = new IntentFilter(FINGERPRINT_BROADCAST_ACTION);
 
     public static final String FINGERPRINT_BROADCAST_ACTION = "ble.localization.fingerprinter.FINGERPRINT";
@@ -64,6 +66,11 @@ public class MainActivity extends AppCompatActivity {
     private Map<Integer, ArrayList<Integer>> beaconRssiValues = new HashMap<>();
     private Map<Integer, Double> averageBeaconRSSIValues = new HashMap<>();
 
+    private Map<String, Object> requestParameter = new HashMap<>();
+    private ArrayList<Object> beaconInfo = new ArrayList<>();
+    private Map<String, Object> locationInfo = new HashMap<>();
+    private String jsonFingerprintRequestString;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
         loading_dialog.setCancelable(false);
         loading_dialog.setCanceledOnTouchOutside(false);
 
-        imageView = (modifiedSubsamplingScaleImageView)findViewById(R.id.mapView);
+        imageView = (ModifiedSubsamplingScaleImageView)findViewById(R.id.mapView);
         imageView.setImage(ImageSource.resource(R.drawable.home_floor_plan));
 
         loading_dialog.dismiss();
@@ -230,11 +237,34 @@ public class MainActivity extends AppCompatActivity {
                             for(Integer rssi : beaconRssiValues.get(key)) {
                                 RSSIs.add((double)rssi);
                             }
-                            Double avg = mathFunctions.doubleRound(mathFunctions.trimmedMean(RSSIs, PERCENT_CUTOFF), DECIMAL_PLACES);
+                            Double avg = MathFunctions.doubleRound(MathFunctions.trimmedMean(RSSIs, PERCENT_CUTOFF), DECIMAL_PLACES);
                             averageBeaconRSSIValues.put(key, avg);
                         }
 
                         Log.v(TAG, "AVERAGED Values: " + averageBeaconRSSIValues.toString());
+
+                        // Put in location information
+                        locationInfo.put("x", imageView.lastTouchCoordinates[0]);
+                        locationInfo.put("y", imageView.lastTouchCoordinates[1]);
+                        locationInfo.put("floor_num", 0);   // Will be dynamic in production
+                        locationInfo.put("floor", "Ground Floor");  // Will be dynamic in production
+
+                        for(Integer beacon : averageBeaconRSSIValues.keySet()) {
+                            Map<String, Object> values = new HashMap<>();
+                            values.put("major", beacon);
+                            values.put("rssi", averageBeaconRSSIValues.get(beacon));
+                            beaconInfo.add(values);
+                        }
+
+                        requestParameter.put("type", "fingerprint");
+                        requestParameter.put("timestamp", System.currentTimeMillis());
+                        requestParameter.put("beacons", beaconInfo);
+                        requestParameter.put("information", locationInfo);
+
+                        jsonFingerprintRequestString = (new JSONObject(requestParameter)).toString();
+
+                        Log.v(TAG, "Request Map: " + requestParameter.toString());
+                        Log.v(TAG, "Request JSON: " + jsonFingerprintRequestString);
 
                         // Send intent
                         final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
@@ -313,7 +343,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showSnackbar(String snackbarText) {
         Snackbar
-                .make(this.findViewById(android.R.id.content), snackbarText, 3000)
+                .make(this.findViewById(android.R.id.content), snackbarText, Snackbar.LENGTH_SHORT)
                 .show();
     }
 

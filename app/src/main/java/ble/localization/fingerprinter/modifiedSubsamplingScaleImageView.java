@@ -20,7 +20,7 @@ import java.util.Arrays;
 /**
  * Created by vishnunair on 7/1/16.
  */
-public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView implements View.OnTouchListener {
+public class ModifiedSubsamplingScaleImageView extends SubsamplingScaleImageView implements View.OnTouchListener {
 
     private static final String TAG = "MapView";
     public static final String BROADCAST_ACTION = "ble.localization.fingerprinter.MainActivity.COORDINATES_CHANGED";
@@ -36,7 +36,7 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
     Paint paint = new Paint();
 
 
-    public modifiedSubsamplingScaleImageView(Context context, AttributeSet attr) {
+    public ModifiedSubsamplingScaleImageView(Context context, AttributeSet attr) {
         super(context, attr);
         this.context = context;
         Arrays.fill(lastTouchCoordinates, defaultCoord);
@@ -82,8 +82,8 @@ public class modifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
         imageMatrix = getMatrix();
         imageMatrix.getValues(values);
 
-        float relativeX = mathFunctions.floatRound(((event.getX() - values[2]) / values[0]), 2);
-        float relativeY = mathFunctions.floatRound(((event.getY() - values[5]) / values[4]), 2);
+        float relativeX = MathFunctions.floatRound(((event.getX() - values[2]) / values[0]), 2);
+        float relativeY = MathFunctions.floatRound(((event.getY() - values[5]) / values[4]), 2);
         PointF point = viewToSourceCoord(relativeX, relativeY);
         lastTouchCoordinates[0] = point.x;
         lastTouchCoordinates[1] = point.y;
