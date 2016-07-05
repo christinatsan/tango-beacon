@@ -41,30 +41,33 @@ import cz.msebera.android.httpclient.entity.StringEntity;
 import cz.msebera.android.httpclient.message.BasicHeader;
 import cz.msebera.android.httpclient.protocol.HTTP;
 
-// To jsonify: https://developer.android.com/reference/org/json/JSONObject.html
-
 public class MainActivity extends AppCompatActivity {
 
+    // Some general variables
+    private static final String TAG = "MainActivity";
     private static final int PERCENT_CUTOFF = 15;
     private static final int DECIMAL_PLACES = 2;
-    private static final String TAG = "MainActivity";
     private static final int timeToRecord = 15000;
     public static final String BASE_SERVER_URL = "http://192.168.0.10:5000";
 
+    // The map view
     private ModifiedSubsamplingScaleImageView imageView;
 
+    // Beacon-related variables
     private BeaconManager beaconManager;
     private static final UUID beaconRegionUUID = UUID.fromString("B9407F30-F5F8-466E-AFF9-25556B57FE6D");
     private static final String beaconRegionName = "ranged region";
     private static final Region region = new Region(beaconRegionName, beaconRegionUUID, null, null);
     private static boolean isEstimoteRangingServiceReady = false;
 
-    private TextView coordView;
+    // Broadcast receivers and intent filters
     private BroadcastReceiver mCoordinateChangeReceiver = new coordinateChangeReceiver();
     private BroadcastReceiver mFingerprintReceiver = new fingerprintReceiver();
     private IntentFilter coordinateChangeFilter = new IntentFilter(ModifiedSubsamplingScaleImageView.BROADCAST_ACTION);
     private IntentFilter fingerprintFilter = new IntentFilter(FINGERPRINT_BROADCAST_ACTION);
 
+    // Broadcast-related objects
+    private TextView coordView;
     public static final String FINGERPRINT_BROADCAST_ACTION = "ble.localization.fingerprinter.FINGERPRINT";
     public static final String BROADCAST_PAYLOAD_KEY = "TARGET_PHASE";
 
@@ -75,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
         SHOW_SUCCESS_MESSAGE;
     }
 
+    // Data holders
     private Map<Integer, ArrayList<Integer>> beaconRssiValues = new HashMap<>();
     private Map<Integer, Double> averageBeaconRSSIValues = new HashMap<>();
 
@@ -298,9 +302,11 @@ public class MainActivity extends AppCompatActivity {
     private void sendValues() {
         Log.d(TAG, "Sending values.");
 
+        final String requestType = "application/json";
+
         AsyncHttpClient client = new AsyncHttpClient();
         StringEntity json = new StringEntity(jsonFingerprintRequestString, "UTF-8");
-        json.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
+        json.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, requestType));
 
         final ProgressDialog progressDialog = new ProgressDialog(MainActivity.this);
         progressDialog.setTitle("Sending values...");
@@ -309,7 +315,7 @@ public class MainActivity extends AppCompatActivity {
         progressDialog.setCancelable(false);
         progressDialog.show();
 
-        client.post(MainActivity.this, BASE_SERVER_URL + "/fingerprint", json, "application/json", new AsyncHttpResponseHandler() {
+        client.post(MainActivity.this, BASE_SERVER_URL + "/fingerprint", json, requestType, new AsyncHttpResponseHandler() {
 
             @Override
             public void onStart() {
@@ -328,7 +334,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error)
             {
-                // Response failed
+                // Request failed
                 showDialogWithOKButton("Sending Failed", "Sending fingerprint data failed. (Server response code: " + statusCode + ")\n\nFingerprinting has been aborted.");
                 showSnackbar("Fingerprinting failed.");
             }
