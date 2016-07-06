@@ -22,7 +22,6 @@ import com.estimote.sdk.BeaconManager;
 import com.estimote.sdk.Region;
 import com.estimote.sdk.SystemRequirementsChecker;
 
-import com.estimote.sdk.repackaged.gson_v2_3_1.com.google.gson.Gson;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.JsonHttpResponseHandler;
 
@@ -44,13 +43,12 @@ public class LocatorActivity extends AppCompatActivity {
 
     private static final String TAG = "LocatorActivity";
     private static final int timeToRecord = 5000;
-    public static final String BASE_SERVER_URL = MainActivity.BASE_SERVER_URL;
+    private static final String URL_ENDPOINT = "/location";
 
     private ModifiedSubsamplingScaleImageView mapView;
 
     private TextView coordView;
     public static final String LOCATOR_BROADCAST_ACTION = "ble.localization.locator.LOCATE";
-    public static final String BROADCAST_PAYLOAD_KEY = "TARGET_PHASE";
 
     // Beacon-related variables
     private BeaconManager locatingBeaconManager;
@@ -114,7 +112,7 @@ public class LocatorActivity extends AppCompatActivity {
                     tapToLocateEnabled = false;
                     locateButton.setText("Stop Localization");
                 } else {
-                    locatingBeaconManager.stopRanging(MainActivity.region);
+                    locatingBeaconManager.stopRanging(Globals.region);
                     tapToLocateEnabled = true;
                     locateButton.setText("Localize");
                 }
@@ -142,7 +140,7 @@ public class LocatorActivity extends AppCompatActivity {
 
                         // Send intent
                         final Intent beginLocalizing = new Intent(LOCATOR_BROADCAST_ACTION);
-                        beginLocalizing.putExtra(BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_ONE);
+                        beginLocalizing.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_ONE);
                         getApplicationContext().sendBroadcast(beginLocalizing);
                     }
                 }
@@ -170,7 +168,7 @@ public class LocatorActivity extends AppCompatActivity {
     public void onPause() {
         this.unregisterReceiver(mCoordinateChangeReceiver);
         this.unregisterReceiver(mLocalizationReceiver);
-        locatingBeaconManager.stopRanging(MainActivity.region);
+        locatingBeaconManager.stopRanging(Globals.region);
         super.onPause();
     }
 
@@ -180,8 +178,8 @@ public class LocatorActivity extends AppCompatActivity {
             this.unregisterReceiver(this.mCoordinateChangeReceiver);
             this.unregisterReceiver(this.mLocalizationReceiver);
         } catch (IllegalArgumentException e) { }
-        locatingBeaconManager.stopRanging(MainActivity.region);
-        MainActivity.disconnectBeaconManager(locatingBeaconManager, isEstimoteRangingServiceReady);
+        locatingBeaconManager.stopRanging(Globals.region);
+        Globals.disconnectBeaconManager(locatingBeaconManager, isEstimoteRangingServiceReady);
         super.onDestroy();
     }
 
@@ -207,13 +205,13 @@ public class LocatorActivity extends AppCompatActivity {
 
     private void checkLocateRequirements() {
         if(!isEstimoteRangingServiceReady[0]) {
-            MainActivity.showDialogWithOKButton(this, "Beacon Ranging Not Ready", "Please wait until the ranging service is ready.");
+            Globals.showDialogWithOKButton(this, "Beacon Ranging Not Ready", "Please wait until the ranging service is ready.");
             return;
         }
 
         SystemRequirementsChecker.checkWithDefaultDialogs(this);
 
-        locatingBeaconManager.startRanging(MainActivity.region);
+        locatingBeaconManager.startRanging(Globals.region);
 
     }
 
@@ -244,7 +242,7 @@ public class LocatorActivity extends AppCompatActivity {
 
         // Send intent
         final Intent sendAllValues = new Intent(LOCATOR_BROADCAST_ACTION);
-        sendAllValues.putExtra(BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_TWO);
+        sendAllValues.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_TWO);
         getApplicationContext().sendBroadcast(sendAllValues);
     }
 
@@ -257,7 +255,7 @@ public class LocatorActivity extends AppCompatActivity {
         StringEntity json = new StringEntity(jsonFingerprintRequestString, "UTF-8");
         json.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, requestType));
 
-        client.put(LocatorActivity.this, BASE_SERVER_URL + "/location", json, requestType, new JsonHttpResponseHandler() {
+        client.put(LocatorActivity.this, Globals.SERVER_BASE_URL + URL_ENDPOINT, json, requestType, new JsonHttpResponseHandler() {
 
             @Override
             public void onStart() {
@@ -283,7 +281,7 @@ public class LocatorActivity extends AppCompatActivity {
                 }
                 // Send intent to complete process
                 final Intent updateMapView = new Intent(LOCATOR_BROADCAST_ACTION);
-                updateMapView.putExtra(BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_THREE);
+                updateMapView.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_THREE);
                 try {
                     mapView.lastTouchCoordinates[0] = (float)(double)coordinates.get(0);
                     mapView.lastTouchCoordinates[1] = (float)(double)coordinates.get(1);
@@ -298,7 +296,7 @@ public class LocatorActivity extends AppCompatActivity {
             public void onFailure(int statusCode, Header[] headers, Throwable error, JSONObject responseBody)
             {
                 // Request failed
-                MainActivity.showSnackbar(findViewById(android.R.id.content), "Sending location data failed. (Server response code: " + statusCode + ")");
+                Globals.showSnackbar(findViewById(android.R.id.content), "Sending location data failed. (Server response code: " + statusCode + ")");
             }
 
             @Override
@@ -341,7 +339,7 @@ public class LocatorActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "Intent received.");
             final Bundle intentPayload = intent.getExtras();
-            final localizationPhase target = (localizationPhase)intentPayload.get(BROADCAST_PAYLOAD_KEY);
+            final localizationPhase target = (localizationPhase)intentPayload.get(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY);
 
             assert (target != null);
 

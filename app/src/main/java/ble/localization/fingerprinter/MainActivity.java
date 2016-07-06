@@ -7,7 +7,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.CountDownTimer;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -37,7 +36,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
 
 import cz.msebera.android.httpclient.Header;
 import cz.msebera.android.httpclient.entity.StringEntity;
@@ -51,16 +49,13 @@ public class MainActivity extends AppCompatActivity {
     protected static final int PERCENT_CUTOFF = 15;
     protected static final int DECIMAL_PLACES = 2;
     private static final int timeToRecord = 15000;
-    public static final String BASE_SERVER_URL = "http://192.168.0.10:5000";
+    private static final String URL_ENDPOINT = "/fingerprint";
 
     // The map view
     private ModifiedSubsamplingScaleImageView mapView;
 
     // Beacon-related variables
     private BeaconManager fingerprintingBeaconManager;
-    protected static final UUID beaconRegionUUID = UUID.fromString("B9407F30-F5F8-466E-AFF9-25556B57FE6D");
-    protected static final String beaconRegionName = "ranged region";
-    protected static final Region region = new Region(beaconRegionName, beaconRegionUUID, null, null);
     private static boolean[] isEstimoteRangingServiceReady = new boolean[1];
 
     // Broadcast receivers and intent filters
@@ -72,13 +67,12 @@ public class MainActivity extends AppCompatActivity {
     // Broadcast-related objects
     private TextView coordView;
     public static final String FINGERPRINT_BROADCAST_ACTION = "ble.localization.fingerprinter.FINGERPRINT";
-    public static final String BROADCAST_PAYLOAD_KEY = "TARGET_PHASE";
 
     protected enum fingerprintingPhase {
         PHASE_ONE,
         PHASE_TWO,
         PHASE_THREE,
-        SHOW_SUCCESS_MESSAGE;
+        SHOW_SUCCESS_MESSAGE
     }
 
     // Data holders
@@ -170,8 +164,10 @@ public class MainActivity extends AppCompatActivity {
         try {
             this.unregisterReceiver(this.mCoordinateChangeReceiver);
             this.unregisterReceiver(this.mFingerprintReceiver);
-        } catch (IllegalArgumentException e) { }
-        disconnectBeaconManager(fingerprintingBeaconManager, isEstimoteRangingServiceReady);
+        } catch (IllegalArgumentException e) {
+            Log.w(TAG, "IllegalArgumentException thrown!", e);
+        }
+        Globals.disconnectBeaconManager(fingerprintingBeaconManager, isEstimoteRangingServiceReady);
         super.onDestroy();
     }
 
@@ -195,20 +191,15 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    protected static void disconnectBeaconManager(BeaconManager mBeaconManager, boolean[] isEstimoteRangingServiceReady) {
-        mBeaconManager.disconnect();
-        isEstimoteRangingServiceReady[0] = false;
-    }
-
     private void beginFingerprinting() {
         // Actual fingerprinting code
         if(!isEstimoteRangingServiceReady[0]) {
-            showDialogWithOKButton(this, "Beacon Ranging Not Ready", "Please wait until the ranging service is ready.");
+            Globals.showDialogWithOKButton(this, "Beacon Ranging Not Ready", "Please wait until the ranging service is ready.");
             return;
         }
 
         if(mapView.lastTouchCoordinates[0] == -1 && mapView.lastTouchCoordinates[1] == -1) {
-            showDialogWithOKButton(this, "Select Coordinates", "Please select coordinates before fingerprinting.");
+            Globals.showDialogWithOKButton(this, "Select Coordinates", "Please select coordinates before fingerprinting.");
             return;
         }
 
@@ -216,12 +207,12 @@ public class MainActivity extends AppCompatActivity {
 
         // Send intent
         final Intent beginFingerprinting = new Intent(FINGERPRINT_BROADCAST_ACTION);
-        beginFingerprinting.putExtra(BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_ONE);
+        beginFingerprinting.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_ONE);
         getApplicationContext().sendBroadcast(beginFingerprinting);
     }
 
     private void retrieveRSSIValues() {
-        fingerprintingBeaconManager.startRanging(region);
+        fingerprintingBeaconManager.startRanging(Globals.region);
         Log.d(TAG, "Ranging started.");
 
         final ProgressDialog progressDialog = new ProgressDialog(this);
@@ -239,13 +230,13 @@ public class MainActivity extends AppCompatActivity {
             }
 
             public void onFinish() {
-                fingerprintingBeaconManager.stopRanging(region);
+                fingerprintingBeaconManager.stopRanging(Globals.region);
                 Log.d(TAG, "Ranging stopped.");
                 progressDialog.dismiss();
 
                 // Send intent
                 final Intent nextPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
-                nextPhaseBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_TWO);
+                nextPhaseBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_TWO);
                 getApplicationContext().sendBroadcast(nextPhaseBroadcast);
                 Log.d(TAG, "Retrieval done.");
             }
@@ -309,7 +300,7 @@ public class MainActivity extends AppCompatActivity {
 
                         // Send intent
                         final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
-                        finalPhaseBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_THREE);
+                        finalPhaseBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_THREE);
                         getApplicationContext().sendBroadcast(finalPhaseBroadcast);
                     }
                 })
@@ -317,7 +308,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
-                        showSnackbar(findViewById(android.R.id.content), "Fingerprinting canceled.");
+                        Globals.showSnackbar(findViewById(android.R.id.content), "Fingerprinting canceled.");
                         clearMaps();
                     }
                 })
@@ -341,7 +332,7 @@ public class MainActivity extends AppCompatActivity {
         progressDialog.setCancelable(false);
         progressDialog.show();
 
-        client.post(MainActivity.this, BASE_SERVER_URL + "/fingerprint", json, requestType, new AsyncHttpResponseHandler() {
+        client.post(MainActivity.this, Globals.SERVER_BASE_URL + URL_ENDPOINT, json, requestType, new AsyncHttpResponseHandler() {
 
             @Override
             public void onStart() {
@@ -353,7 +344,7 @@ public class MainActivity extends AppCompatActivity {
                 // Successfully got a response
                 // Send intent to complete process
                 final Intent notifyBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
-                notifyBroadcast.putExtra(BROADCAST_PAYLOAD_KEY, fingerprintingPhase.SHOW_SUCCESS_MESSAGE);
+                notifyBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.SHOW_SUCCESS_MESSAGE);
                 getApplicationContext().sendBroadcast(notifyBroadcast);
             }
 
@@ -361,8 +352,8 @@ public class MainActivity extends AppCompatActivity {
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error)
             {
                 // Request failed
-                showDialogWithOKButton(getApplicationContext(), "Sending Failed", "Sending fingerprint data failed. (Server response code: " + statusCode + ")\n\nFingerprinting has been aborted.");
-                showSnackbar(findViewById(android.R.id.content), "Fingerprinting failed.");
+                Globals.showDialogWithOKButton(getApplicationContext(), "Sending Failed", "Sending fingerprint data failed. (Server response code: " + statusCode + ")\n\nFingerprinting has been aborted.");
+                Globals.showSnackbar(findViewById(android.R.id.content), "Fingerprinting failed.");
             }
 
             @Override
@@ -416,7 +407,7 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "Intent received.");
             final Bundle intentPayload = intent.getExtras();
-            final fingerprintingPhase target = (fingerprintingPhase)intentPayload.get(BROADCAST_PAYLOAD_KEY);
+            final fingerprintingPhase target = (fingerprintingPhase)intentPayload.get(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY);
 
             assert (target != null);
 
@@ -434,7 +425,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
 
                 case SHOW_SUCCESS_MESSAGE:
-                    showSnackbar(findViewById(android.R.id.content), "Fingerprinting complete at (" + mapView.lastTouchCoordinates[0] + ", " + mapView.lastTouchCoordinates[1] + ").");
+                    Globals.showSnackbar(findViewById(android.R.id.content), "Fingerprinting complete at (" + mapView.lastTouchCoordinates[0] + ", " + mapView.lastTouchCoordinates[1] + ").");
                     break;
 
             }
@@ -442,23 +433,4 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    protected static void showSnackbar(View view, String snackbarText) {
-        Snackbar
-                .make(view, snackbarText, Snackbar.LENGTH_SHORT)
-                .show();
-    }
-
-    protected static void showDialogWithOKButton(Context context, String title, String message) {
-        new AlertDialog.Builder(context)
-                .setTitle(title)
-                .setMessage(message)
-                .setCancelable(false)
-                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-                    }
-                })
-                .show();
-    }
 }
