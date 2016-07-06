@@ -203,7 +203,13 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        SystemRequirementsChecker.checkWithDefaultDialogs(this);
+        if(!SystemRequirementsChecker.checkWithDefaultDialogs(this)) {
+            Globals.showDialogWithOKButton(getApplicationContext(),
+                    "Required Permissions Not Granted",
+                    "This app requires Location and Bluetooth permissions to function properly." +
+                            " Please restart fingerprinting and grant these permissions.");
+            return;
+        }
 
         // Send intent
         final Intent beginFingerprinting = new Intent(FINGERPRINT_BROADCAST_ACTION);
@@ -247,6 +253,12 @@ public class MainActivity extends AppCompatActivity {
     private void processValues() {
         Log.d(TAG, "Processing values.");
         Log.v(TAG, "ALL Values: " + beaconRssiValues.toString());
+
+        if(beaconRssiValues.keySet().size() == 0) {
+            Globals.showDialogWithOKButton(this, "No Beacons Detected",
+                    "Make sure you are in the range of beacons and that they are working.");
+            return;
+        }
 
         String message = "In this fingerprint, the following number of RSSIs were collected for each of the following beacons:\n";
 
