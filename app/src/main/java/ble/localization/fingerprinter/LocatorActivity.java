@@ -108,7 +108,7 @@ public class LocatorActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if(tapToLocateEnabled) {
-                    checkLocateRequirements();
+                    if(!checkLocateRequirements()) return;
                     tapToLocateEnabled = false;
                     locateButton.setText("Stop Localization");
                 } else {
@@ -190,7 +190,7 @@ public class LocatorActivity extends AppCompatActivity {
     }
 
     public boolean onOptionsItemSelected(MenuItem item) {
-        //respond to menu item selection
+        // respond to menu item selection
         switch (item.getItemId()) {
             case R.id.return_to_fingerprinter:
                 // return to fingerprinter here
@@ -203,16 +203,22 @@ public class LocatorActivity extends AppCompatActivity {
         return true;
     }
 
-    private void checkLocateRequirements() {
+    private boolean checkLocateRequirements() {
         if(!isEstimoteRangingServiceReady[0]) {
             Globals.showDialogWithOKButton(this, "Beacon Ranging Not Ready", "Please wait until the ranging service is ready.");
-            return;
+            return false;
         }
 
-        SystemRequirementsChecker.checkWithDefaultDialogs(this);
+        if(!SystemRequirementsChecker.checkWithDefaultDialogs(this)) {
+            Globals.showDialogWithOKButton(getApplicationContext(),
+                    "Required Permissions Not Granted",
+                    "This app requires Location and Bluetooth permissions to function properly." +
+                            " Please restart localization and grant these permissions.");
+            return false;
+        }
 
         locatingBeaconManager.startRanging(Globals.region);
-
+        return true;
     }
 
     private void processValues() {
@@ -353,7 +359,7 @@ public class LocatorActivity extends AppCompatActivity {
                     break;
 
                 case PHASE_THREE:
-                    // Update coordinate text.
+                    // Update coordinate text
                     Intent in = new Intent(ModifiedSubsamplingScaleImageView.COORDINATE_TEXT_UPDATE_BROADCAST);
                     context.sendBroadcast(in);
                     // Update the map view
