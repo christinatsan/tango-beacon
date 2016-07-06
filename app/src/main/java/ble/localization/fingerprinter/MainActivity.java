@@ -12,6 +12,9 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -44,26 +47,26 @@ import cz.msebera.android.httpclient.protocol.HTTP;
 public class MainActivity extends AppCompatActivity {
 
     // Some general variables
-    private static final String TAG = "MainActivity";
-    private static final int PERCENT_CUTOFF = 15;
-    private static final int DECIMAL_PLACES = 2;
+    private static final String TAG = "FingerprintActivity";
+    protected static final int PERCENT_CUTOFF = 15;
+    protected static final int DECIMAL_PLACES = 2;
     private static final int timeToRecord = 15000;
     public static final String BASE_SERVER_URL = "http://192.168.0.10:5000";
 
     // The map view
-    private ModifiedSubsamplingScaleImageView imageView;
+    private ModifiedSubsamplingScaleImageView mapView;
 
     // Beacon-related variables
-    private BeaconManager beaconManager;
-    private static final UUID beaconRegionUUID = UUID.fromString("B9407F30-F5F8-466E-AFF9-25556B57FE6D");
-    private static final String beaconRegionName = "ranged region";
-    private static final Region region = new Region(beaconRegionName, beaconRegionUUID, null, null);
-    private static boolean isEstimoteRangingServiceReady = false;
+    private BeaconManager fingerprintingBeaconManager;
+    protected static final UUID beaconRegionUUID = UUID.fromString("B9407F30-F5F8-466E-AFF9-25556B57FE6D");
+    protected static final String beaconRegionName = "ranged region";
+    protected static final Region region = new Region(beaconRegionName, beaconRegionUUID, null, null);
+    private static boolean[] isEstimoteRangingServiceReady = new boolean[1];
 
     // Broadcast receivers and intent filters
     private BroadcastReceiver mCoordinateChangeReceiver = new coordinateChangeReceiver();
     private BroadcastReceiver mFingerprintReceiver = new fingerprintReceiver();
-    private IntentFilter coordinateChangeFilter = new IntentFilter(ModifiedSubsamplingScaleImageView.BROADCAST_ACTION);
+    private IntentFilter coordinateChangeFilter = new IntentFilter(ModifiedSubsamplingScaleImageView.COORDINATE_TEXT_UPDATE_BROADCAST);
     private IntentFilter fingerprintFilter = new IntentFilter(FINGERPRINT_BROADCAST_ACTION);
 
     // Broadcast-related objects
@@ -71,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String FINGERPRINT_BROADCAST_ACTION = "ble.localization.fingerprinter.FINGERPRINT";
     public static final String BROADCAST_PAYLOAD_KEY = "TARGET_PHASE";
 
-    public enum fingerprintingPhase {
+    protected enum fingerprintingPhase {
         PHASE_ONE,
         PHASE_TWO,
         PHASE_THREE,
@@ -83,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
     private Map<Integer, Double> averageBeaconRSSIValues = new HashMap<>();
 
     private Map<String, Object> requestParameter = new HashMap<>();
-    private ArrayList<Object> beaconInfo = new ArrayList<>();
+    private ArrayList<Object> beaconInfo = new ArrayList<>();   // major-RSSI values
     private Map<String, Object> locationInfo = new HashMap<>();
     private String jsonFingerprintRequestString;
 
@@ -96,15 +99,14 @@ public class MainActivity extends AppCompatActivity {
         loading_dialog.setCancelable(false);
         loading_dialog.setCanceledOnTouchOutside(false);
 
-        imageView = (ModifiedSubsamplingScaleImageView)findViewById(R.id.mapView);
-        imageView.setImage(ImageSource.resource(R.drawable.home_floor_plan));
+        mapView = (ModifiedSubsamplingScaleImageView)findViewById(R.id.mapView);
+        mapView.setImage(ImageSource.resource(R.drawable.home_floor_plan));
 
         loading_dialog.dismiss();
 
-        coordView = (TextView)findViewById(R.id.coordinateText);
+        isEstimoteRangingServiceReady[0] = false;
 
-        this.registerReceiver(mCoordinateChangeReceiver, coordinateChangeFilter);
-        this.registerReceiver(mFingerprintReceiver, fingerprintFilter);
+        coordView = (TextView)findViewById(R.id.coordinateText);
 
         final Button fingerprintButton = (Button)findViewById(R.id.fingerprintButton);
         assert (fingerprintButton != null);
@@ -125,9 +127,9 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Estimote-related code
-        beaconManager = new BeaconManager(this);
+        fingerprintingBeaconManager = new BeaconManager(this);
 
-        beaconManager.setRangingListener(new BeaconManager.RangingListener() {
+        fingerprintingBeaconManager.setRangingListener(new BeaconManager.RangingListener() {
             @Override
             public void onBeaconsDiscovered(Region region, List<Beacon> list) {
                 // Beacon discovery code goes here.
@@ -140,10 +142,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        beaconManager.connect(new BeaconManager.ServiceReadyCallback() {
+        fingerprintingBeaconManager.connect(new BeaconManager.ServiceReadyCallback() {
             @Override
             public void onServiceReady() {
-                isEstimoteRangingServiceReady = true;
+                isEstimoteRangingServiceReady[0] = true;
             }
         });
 
@@ -169,20 +171,44 @@ public class MainActivity extends AppCompatActivity {
             this.unregisterReceiver(this.mCoordinateChangeReceiver);
             this.unregisterReceiver(this.mFingerprintReceiver);
         } catch (IllegalArgumentException e) { }
-        beaconManager.disconnect();
+        disconnectBeaconManager(fingerprintingBeaconManager, isEstimoteRangingServiceReady);
         super.onDestroy();
     }
 
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.fingerprinter_options_menu, menu);
+        return true;
+    }
+
+    public boolean onOptionsItemSelected(MenuItem item) {
+        //respond to menu item selection
+        switch (item.getItemId()) {
+            case R.id.locator_launch:
+                // launch locator here
+                startActivity(new Intent(this, LocatorActivity.class));
+                break;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+
+        return true;
+    }
+
+    protected static void disconnectBeaconManager(BeaconManager mBeaconManager, boolean[] isEstimoteRangingServiceReady) {
+        mBeaconManager.disconnect();
+        isEstimoteRangingServiceReady[0] = false;
+    }
 
     private void beginFingerprinting() {
         // Actual fingerprinting code
-        if(!isEstimoteRangingServiceReady) {
-            showDialogWithOKButton("Beacon Ranging Not Ready", "Please wait until the ranging service is ready.");
+        if(!isEstimoteRangingServiceReady[0]) {
+            showDialogWithOKButton(this, "Beacon Ranging Not Ready", "Please wait until the ranging service is ready.");
             return;
         }
 
-        if(imageView.lastTouchCoordinates[0] == -1 && imageView.lastTouchCoordinates[1] == -1) {
-            showDialogWithOKButton("Select Coordinates", "Please select coordinates before fingerprinting.");
+        if(mapView.lastTouchCoordinates[0] == -1 && mapView.lastTouchCoordinates[1] == -1) {
+            showDialogWithOKButton(this, "Select Coordinates", "Please select coordinates before fingerprinting.");
             return;
         }
 
@@ -195,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void retrieveRSSIValues() {
-        beaconManager.startRanging(region);
+        fingerprintingBeaconManager.startRanging(region);
         Log.d(TAG, "Ranging started.");
 
         final ProgressDialog progressDialog = new ProgressDialog(this);
@@ -213,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             public void onFinish() {
-                beaconManager.stopRanging(region);
+                fingerprintingBeaconManager.stopRanging(region);
                 Log.d(TAG, "Ranging stopped.");
                 progressDialog.dismiss();
 
@@ -259,8 +285,8 @@ public class MainActivity extends AppCompatActivity {
                         Log.v(TAG, "AVERAGED Values: " + averageBeaconRSSIValues.toString());
 
                         // Put in location information
-                        locationInfo.put("x", imageView.lastTouchCoordinates[0]);
-                        locationInfo.put("y", imageView.lastTouchCoordinates[1]);
+                        locationInfo.put("x", mapView.lastTouchCoordinates[0]);
+                        locationInfo.put("y", mapView.lastTouchCoordinates[1]);
                         locationInfo.put("floor_num", 0);   // Will be dynamic in production
                         locationInfo.put("floor", "Ground Floor");  // Will be dynamic in production
 
@@ -291,7 +317,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
-                        showSnackbar("Fingerprinting canceled.");
+                        showSnackbar(findViewById(android.R.id.content), "Fingerprinting canceled.");
                         clearMaps();
                     }
                 })
@@ -335,8 +361,8 @@ public class MainActivity extends AppCompatActivity {
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error)
             {
                 // Request failed
-                showDialogWithOKButton("Sending Failed", "Sending fingerprint data failed. (Server response code: " + statusCode + ")\n\nFingerprinting has been aborted.");
-                showSnackbar("Fingerprinting failed.");
+                showDialogWithOKButton(getApplicationContext(), "Sending Failed", "Sending fingerprint data failed. (Server response code: " + statusCode + ")\n\nFingerprinting has been aborted.");
+                showSnackbar(findViewById(android.R.id.content), "Fingerprinting failed.");
             }
 
             @Override
@@ -362,14 +388,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void clearCoordinates() {
-        Arrays.fill(imageView.lastTouchCoordinates, -1);
+        Arrays.fill(mapView.lastTouchCoordinates, -1);
         coordView.setText("None");
-        imageView.invalidate();
+        mapView.invalidate();
     }
 
     private void clearMaps() {
         beaconRssiValues.clear();
         averageBeaconRSSIValues.clear();
+        requestParameter.clear();
+        beaconInfo.clear();
+        locationInfo.clear();
+        jsonFingerprintRequestString = "";
     }
 
     // Receives notification that the selected coordinates have been changed.
@@ -377,7 +407,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             // Change coordinates on screen
-            coordView.setText("(" + imageView.lastTouchCoordinates[0] + ", " + imageView.lastTouchCoordinates[1] + ")");
+            coordView.setText("(" + mapView.lastTouchCoordinates[0] + ", " + mapView.lastTouchCoordinates[1] + ")");
         }
     }
 
@@ -404,7 +434,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
 
                 case SHOW_SUCCESS_MESSAGE:
-                    showSnackbar("Fingerprinting complete at (" + imageView.lastTouchCoordinates[0] + ", " + imageView.lastTouchCoordinates[1] + ").");
+                    showSnackbar(findViewById(android.R.id.content), "Fingerprinting complete at (" + mapView.lastTouchCoordinates[0] + ", " + mapView.lastTouchCoordinates[1] + ").");
                     break;
 
             }
@@ -412,14 +442,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void showSnackbar(String snackbarText) {
+    protected static void showSnackbar(View view, String snackbarText) {
         Snackbar
-                .make(this.findViewById(android.R.id.content), snackbarText, Snackbar.LENGTH_SHORT)
+                .make(view, snackbarText, Snackbar.LENGTH_SHORT)
                 .show();
     }
 
-    private void showDialogWithOKButton(String title, String message) {
-        new AlertDialog.Builder(this)
+    protected static void showDialogWithOKButton(Context context, String title, String message) {
+        new AlertDialog.Builder(context)
                 .setTitle(title)
                 .setMessage(message)
                 .setCancelable(false)

@@ -23,11 +23,12 @@ import java.util.Arrays;
 public class ModifiedSubsamplingScaleImageView extends SubsamplingScaleImageView implements View.OnTouchListener {
 
     private static final String TAG = "MapView";
-    public static final String BROADCAST_ACTION = "ble.localization.fingerprinter.MainActivity.COORDINATES_CHANGED";
+    public static final String COORDINATE_TEXT_UPDATE_BROADCAST = "ble.localization.fingerprinter.COORDINATES_CHANGED";
     private static final int defaultCoord = -1;
     private static final int actionToBeHandled = MotionEvent.ACTION_UP;
 
     protected Context context;
+    private boolean touchAllowed;
 
     private float[] values = new float[9];
     Matrix imageMatrix = new Matrix();
@@ -40,6 +41,11 @@ public class ModifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
         super(context, attr);
         this.context = context;
         Arrays.fill(lastTouchCoordinates, defaultCoord);
+        touchAllowed = true;
+    }
+
+    public void setTouchAllowedBool(boolean isAllowed) {
+        this.touchAllowed = isAllowed;
     }
 
     @Override
@@ -73,7 +79,7 @@ public class ModifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
 
     @Override
     public boolean onTouchEvent(@NonNull MotionEvent event) {
-        if ((event.getAction() & MotionEvent.ACTION_MASK) != actionToBeHandled) {
+        if (((event.getAction() & MotionEvent.ACTION_MASK) != actionToBeHandled) || !touchAllowed) {
             return super.onTouchEvent(event);
         }
 
@@ -93,7 +99,7 @@ public class ModifiedSubsamplingScaleImageView extends SubsamplingScaleImageView
         Log.d(TAG, "Y-Coordinate: " + lastTouchCoordinates[1]);
 
         // Tell the MainActivity that we changed the coordinates.
-        Intent in = new Intent(BROADCAST_ACTION);
+        Intent in = new Intent(COORDINATE_TEXT_UPDATE_BROADCAST);
         context.sendBroadcast(in);
 
         invalidate();
