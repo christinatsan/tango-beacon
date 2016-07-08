@@ -210,10 +210,10 @@ public class LocatorActivity extends AppCompatActivity {
         }
 
         if(!SystemRequirementsChecker.checkWithDefaultDialogs(this)) {
-            Globals.showDialogWithOKButton(getApplicationContext(),
+            Globals.showDialogWithOKButton(this,
                     "Required Permissions Not Granted",
                     "This app requires Location and Bluetooth permissions to function properly." +
-                            " Please restart localization and grant these permissions.");
+                            " Please grant these permissions and restart localization.");
             return false;
         }
 

@@ -17,7 +17,7 @@ import java.util.UUID;
 public class Globals {
 
     protected static final String PHASE_CHANGE_BROADCAST_PAYLOAD_KEY = "TARGET_PHASE";
-    protected static final String SERVER_BASE_URL = "http://192.168.0.10:5000";
+    protected static final String SERVER_BASE_URL = "http://192.168.0.10:8000/api";
 
     protected static final UUID beaconRegionUUID = UUID.fromString("B9407F30-F5F8-466E-AFF9-25556B57FE6D");
     protected static final String beaconRegionName = "ranged region";

@@ -33,6 +33,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -76,12 +77,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Data holders
-    private Map<Integer, ArrayList<Integer>> beaconRssiValues = new HashMap<>();
-    private Map<Integer, Double> averageBeaconRSSIValues = new HashMap<>();
+    private LinkedHashMap<Integer, ArrayList<Integer>> beaconRssiValues = new LinkedHashMap<>();
+    private LinkedHashMap<Integer, Double> averageBeaconRSSIValues = new LinkedHashMap<>();
 
-    private Map<String, Object> requestParameter = new HashMap<>();
+    private LinkedHashMap<String, Object> requestParameter = new LinkedHashMap<>();
     private ArrayList<Object> beaconInfo = new ArrayList<>();   // major-RSSI values
-    private Map<String, Object> locationInfo = new HashMap<>();
+    private LinkedHashMap<String, Object> locationInfo = new LinkedHashMap<>();
     private String jsonFingerprintRequestString;
 
     @Override
@@ -204,10 +205,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if(!SystemRequirementsChecker.checkWithDefaultDialogs(this)) {
-            Globals.showDialogWithOKButton(getApplicationContext(),
+            Globals.showDialogWithOKButton(this,
                     "Required Permissions Not Granted",
                     "This app requires Location and Bluetooth permissions to function properly." +
-                            " Please restart fingerprinting and grant these permissions.");
+                            " Please grant these permissions and restart fingerprintingn.");
             return;
         }
 
@@ -301,6 +302,7 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         requestParameter.put("type", "fingerprint");
+                        requestParameter.put("f_id", null);
                         requestParameter.put("timestamp", System.currentTimeMillis());
                         requestParameter.put("beacons", beaconInfo);
                         requestParameter.put("information", locationInfo);
@@ -358,14 +360,40 @@ public class MainActivity extends AppCompatActivity {
                 final Intent notifyBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
                 notifyBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.SHOW_SUCCESS_MESSAGE);
                 getApplicationContext().sendBroadcast(notifyBroadcast);
+                // Clear maps to prepare for next fingerprint
+                clearMaps();
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error)
             {
                 // Request failed
-                Globals.showDialogWithOKButton(getApplicationContext(), "Sending Failed", "Sending fingerprint data failed. (Server response code: " + statusCode + ")\n\nFingerprinting has been aborted.");
                 Globals.showSnackbar(findViewById(android.R.id.content), "Fingerprinting failed.");
+
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Sending Failed")
+                        .setMessage("Sending fingerprint data failed. (Server response code: " + statusCode + ")")
+                        .setCancelable(false)
+                        .setNegativeButton("End", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                                clearMaps();
+                            }
+                        })
+                        .setPositiveButton("Retry", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                                // Send intent
+                                final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
+                                finalPhaseBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_THREE);
+                                getApplicationContext().sendBroadcast(finalPhaseBroadcast);
+                            }
+                        })
+                        .show();
+
+
             }
 
             @Override
@@ -384,8 +412,7 @@ public class MainActivity extends AppCompatActivity {
             public void onFinish() {
                 // Completed the request (either success or failure)
                 progressDialog.dismiss();
-                // Clear maps to prepare for next fingerprint
-                clearMaps();
+
             }
         });
     }

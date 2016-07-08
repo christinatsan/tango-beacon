@@ -2,7 +2,6 @@ package ble.localization.fingerprinter;
 
 import org.apache.commons.lang3.ArrayUtils;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 
 import cern.colt.list.DoubleArrayList;
