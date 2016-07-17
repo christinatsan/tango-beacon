@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String URL_ENDPOINT = "/fingerprint";
 
     // The map view
-    private ModifiedSubsamplingScaleImageView mapView;
+    private MapView mapView;
 
     // Beacon-related variables
     private BeaconManager fingerprintingBeaconManager;
@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
     // Broadcast receivers and intent filters
     private BroadcastReceiver mCoordinateChangeReceiver = new coordinateChangeReceiver();
     private BroadcastReceiver mFingerprintReceiver = new fingerprintReceiver();
-    private IntentFilter coordinateChangeFilter = new IntentFilter(ModifiedSubsamplingScaleImageView.COORDINATE_TEXT_UPDATE_BROADCAST);
+    private IntentFilter coordinateChangeFilter = new IntentFilter(MapView.COORDINATE_TEXT_UPDATE_BROADCAST);
     private IntentFilter fingerprintFilter = new IntentFilter(FINGERPRINT_BROADCAST_ACTION);
 
     // Broadcast-related objects
@@ -94,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
         loading_dialog.setCancelable(false);
         loading_dialog.setCanceledOnTouchOutside(false);
 
-        mapView = (ModifiedSubsamplingScaleImageView)findViewById(R.id.mapView);
+        mapView = (MapView)findViewById(R.id.mapView);
         mapView.setImage(ImageSource.resource(R.drawable.home_floor_plan));
 
         loading_dialog.dismiss();

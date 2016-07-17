@@ -45,7 +45,7 @@ public class LocatorActivity extends AppCompatActivity {
     private static final int timeToRecord = 5000;
     private static final String URL_ENDPOINT = "/location";
 
-    private ModifiedSubsamplingScaleImageView mapView;
+    private MapView mapView;
 
     private TextView coordView;
     public static final String LOCATOR_BROADCAST_ACTION = "ble.localization.locator.LOCATE";
@@ -58,7 +58,7 @@ public class LocatorActivity extends AppCompatActivity {
     // Broadcast receivers and intent filters
     private BroadcastReceiver mCoordinateChangeReceiver = new coordinateChangeReceiver();
     private BroadcastReceiver mLocalizationReceiver = new localizationReceiver();
-    private IntentFilter coordinateChangeFilter = new IntentFilter(ModifiedSubsamplingScaleImageView.COORDINATE_TEXT_UPDATE_BROADCAST);
+    private IntentFilter coordinateChangeFilter = new IntentFilter(MapView.COORDINATE_TEXT_UPDATE_BROADCAST);
     private IntentFilter localizationFilter = new IntentFilter(LOCATOR_BROADCAST_ACTION);
 
     // Data holders
@@ -87,7 +87,7 @@ public class LocatorActivity extends AppCompatActivity {
         loading_dialog.setCancelable(false);
         loading_dialog.setCanceledOnTouchOutside(false);
 
-        mapView = (ModifiedSubsamplingScaleImageView)findViewById(R.id.mapView);
+        mapView = (MapView)findViewById(R.id.mapView);
         mapView.setImage(ImageSource.resource(R.drawable.home_floor_plan));
         mapView.setTouchAllowedBool(false);
 
@@ -360,7 +360,7 @@ public class LocatorActivity extends AppCompatActivity {
 
                 case PHASE_THREE:
                     // Update coordinate text
-                    Intent in = new Intent(ModifiedSubsamplingScaleImageView.COORDINATE_TEXT_UPDATE_BROADCAST);
+                    Intent in = new Intent(MapView.COORDINATE_TEXT_UPDATE_BROADCAST);
                     context.sendBroadcast(in);
                     // Update the map view
                     mapView.invalidate();
