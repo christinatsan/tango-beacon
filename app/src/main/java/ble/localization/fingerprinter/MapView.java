@@ -24,6 +24,8 @@ public class MapView extends SubsamplingScaleImageView implements View.OnTouchLi
 
     private static final String TAG = "MapView";
     public static final String COORDINATE_TEXT_UPDATE_BROADCAST = "ble.localization.fingerprinter.COORDINATES_CHANGED";
+    public static final String PROVIDE_C_AND_N_VALUES = "ble.localization.fingerprinter.SEND_C_AND_N";
+    public static final String SELECT_NEXT_COORDINATE_REQUEST = "ble.localization.fingerprinter.REQUEST_NEXT_COORD_SELECTION";
     private static final int defaultCoord = -1;
     private static final int actionToBeHandled = MotionEvent.ACTION_UP;
 
@@ -32,6 +34,7 @@ public class MapView extends SubsamplingScaleImageView implements View.OnTouchLi
 
     private float[] values = new float[9];
     Matrix imageMatrix = new Matrix();
+    public float[] thisTouchCoordinates = new float[2];
     public float[] lastTouchCoordinates = new float[2];
 
     Paint paint = new Paint();
@@ -40,6 +43,7 @@ public class MapView extends SubsamplingScaleImageView implements View.OnTouchLi
     public MapView(Context context, AttributeSet attr) {
         super(context, attr);
         this.context = context;
+        Arrays.fill(thisTouchCoordinates, defaultCoord);
         Arrays.fill(lastTouchCoordinates, defaultCoord);
         touchAllowed = true;
     }
@@ -52,12 +56,12 @@ public class MapView extends SubsamplingScaleImageView implements View.OnTouchLi
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        if(lastTouchCoordinates[0] == defaultCoord && lastTouchCoordinates[1] == defaultCoord) return;
+        if(thisTouchCoordinates[0] == defaultCoord && thisTouchCoordinates[1] == defaultCoord) return;
 
         float density = getResources().getDisplayMetrics().densityDpi;
         int strokeWidth = (int)(density/60f);
 
-        PointF view_coords = sourceToViewCoord(lastTouchCoordinates[0], lastTouchCoordinates[1]);
+        PointF view_coords = sourceToViewCoord(thisTouchCoordinates[0], thisTouchCoordinates[1]);
 
         float radius = (getScale() * getSWidth()) * 0.01f;
 
@@ -70,6 +74,16 @@ public class MapView extends SubsamplingScaleImageView implements View.OnTouchLi
         paint.setStrokeWidth(strokeWidth);
         paint.setColor(Color.argb(255, 51, 181, 229));
         canvas.drawCircle(view_coords.x, view_coords.y, radius, paint);
+
+        if(!(lastTouchCoordinates[0] == defaultCoord && lastTouchCoordinates[1] == defaultCoord)) {
+            PointF camera_coords = sourceToViewCoord(lastTouchCoordinates[0], lastTouchCoordinates[1]);
+
+            paint.setColor(Color.RED);
+            canvas.drawCircle(camera_coords.x, camera_coords.y, radius, paint);
+            paint.setStrokeWidth(strokeWidth);
+            paint.setColor(Color.RED);
+            canvas.drawCircle(camera_coords.x, camera_coords.y, radius, paint);
+        }
     }
 
     @Override
@@ -91,16 +105,35 @@ public class MapView extends SubsamplingScaleImageView implements View.OnTouchLi
         float relativeX = MathFunctions.floatRound(((event.getX() - values[2]) / values[0]), 2);
         float relativeY = MathFunctions.floatRound(((event.getY() - values[5]) / values[4]), 2);
         PointF point = viewToSourceCoord(relativeX, relativeY);
-        lastTouchCoordinates[0] = point.x;
-        lastTouchCoordinates[1] = point.y;
+
+        lastTouchCoordinates[0] = thisTouchCoordinates[0];
+        lastTouchCoordinates[1] = thisTouchCoordinates[1];
+
+        thisTouchCoordinates[0] = point.x;
+        thisTouchCoordinates[1] = point.y;
 
         // Show selected coordinates on screen and/or log.
-        Log.d(TAG, "X-Coordinate: " + lastTouchCoordinates[0]);
-        Log.d(TAG, "Y-Coordinate: " + lastTouchCoordinates[1]);
+        Log.d(TAG, "X-Coordinate: " + thisTouchCoordinates[0]);
+        Log.d(TAG, "Y-Coordinate: " + thisTouchCoordinates[1]);
+
+        // Stop if the last touch coordinates are still the defaults.
+        if(lastTouchCoordinates[0] == defaultCoord && lastTouchCoordinates[1] == defaultCoord) {
+            Intent request_next_coordinates = new Intent(SELECT_NEXT_COORDINATE_REQUEST);
+            context.sendBroadcast(request_next_coordinates);
+            return true;
+        }
 
         // Tell the MainActivity that we changed the coordinates.
         Intent in = new Intent(COORDINATE_TEXT_UPDATE_BROADCAST);
         context.sendBroadcast(in);
+
+        // Indirectly provide the C abd N coordinates to the map view.
+        Intent in2 = new Intent(PROVIDE_C_AND_N_VALUES);
+        in2.putExtra("x_c", lastTouchCoordinates[0]);
+        in2.putExtra("y_c", lastTouchCoordinates[1]);
+        in2.putExtra("x_n", thisTouchCoordinates[0]);
+        in2.putExtra("y_n", thisTouchCoordinates[1]);
+        context.sendBroadcast(in2);
 
         invalidate();
 

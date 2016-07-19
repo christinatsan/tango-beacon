@@ -1,35 +1,39 @@
 package ble.localization.fingerprinter;
 
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
+import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
-
 import com.estimote.sdk.Beacon;
 import com.estimote.sdk.BeaconManager;
 import com.estimote.sdk.Region;
 import com.estimote.sdk.SystemRequirementsChecker;
-
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 
 import org.json.JSONObject;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -54,16 +58,25 @@ public class MainActivity extends AppCompatActivity {
 
     // The map view
     private MapView mapView;
+    private CameraView cameraView;
 
     // Beacon-related variables
     private BeaconManager fingerprintingBeaconManager;
     private static boolean[] isEstimoteRangingServiceReady = new boolean[1];
 
     // Broadcast receivers and intent filters
-    private BroadcastReceiver mCoordinateChangeReceiver = new coordinateChangeReceiver();
-    private BroadcastReceiver mFingerprintReceiver = new fingerprintReceiver();
+    private BroadcastReceiver mCoordinateChangeReceiver = new CoordinateChangeReceiver();
+    private BroadcastReceiver mFingerprintReceiver = new FingerprintReceiver();
+    private BroadcastReceiver mCNRequestReceiver = new CNRequestReceiver();
+    private BroadcastReceiver mViewImageURLReceiver = new ImageURLReceiver();
+    private BroadcastReceiver mRequestNextCoordinates = new DisplayInstructionsToSelectNextCoord();
+    private BroadcastReceiver mSendCoordToMap = new SendNewCoordinatesFromViewToMap();
     private IntentFilter coordinateChangeFilter = new IntentFilter(MapView.COORDINATE_TEXT_UPDATE_BROADCAST);
     private IntentFilter fingerprintFilter = new IntentFilter(FINGERPRINT_BROADCAST_ACTION);
+    private IntentFilter CNRequestFilter = new IntentFilter(MapView.PROVIDE_C_AND_N_VALUES);
+    private IntentFilter ImageURLRequestFilter = new IntentFilter(CameraView.SEND_IMAGE_URL_BROADCAST);
+    private IntentFilter nextCoordinateRequestFilter = new IntentFilter(MapView.SELECT_NEXT_COORDINATE_REQUEST);
+    private IntentFilter sendCoordToMapRequestFilter = new IntentFilter(CameraView.SEND_COORD_TO_MAP_BROADCAST);
 
     // Broadcast-related objects
     private TextView coordView;
@@ -94,16 +107,19 @@ public class MainActivity extends AppCompatActivity {
         loading_dialog.setCancelable(false);
         loading_dialog.setCanceledOnTouchOutside(false);
 
-        mapView = (MapView)findViewById(R.id.mapView);
+        mapView = (MapView) findViewById(R.id.mapView);
         mapView.setImage(ImageSource.resource(R.drawable.home_floor_plan));
+
+        cameraView = (CameraView) findViewById(R.id.cameraView);
+        cameraView.setImage(ImageSource.resource(R.drawable.placeholder));
 
         loading_dialog.dismiss();
 
         isEstimoteRangingServiceReady[0] = false;
 
-        coordView = (TextView)findViewById(R.id.coordinateText);
+        coordView = (TextView) findViewById(R.id.coordinateText);
 
-        final Button fingerprintButton = (Button)findViewById(R.id.fingerprintButton);
+        final Button fingerprintButton = (Button) findViewById(R.id.fingerprintButton);
         assert (fingerprintButton != null);
         fingerprintButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -112,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        final Button clearButton = (Button)findViewById(R.id.clearButton);
+        final Button clearButton = (Button) findViewById(R.id.clearButton);
         assert (clearButton != null);
         clearButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -128,8 +144,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onBeaconsDiscovered(Region region, List<Beacon> list) {
                 // Beacon discovery code goes here.
-                for(Beacon b : list) {
-                    if(!beaconRssiValues.containsKey(b.getMajor())) {
+                for (Beacon b : list) {
+                    if (!beaconRssiValues.containsKey(b.getMajor())) {
                         beaconRssiValues.put(b.getMajor(), new ArrayList<Integer>());
                     }
                     beaconRssiValues.get(b.getMajor()).add(b.getRssi());
@@ -151,23 +167,25 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         this.registerReceiver(mCoordinateChangeReceiver, coordinateChangeFilter);
         this.registerReceiver(mFingerprintReceiver, fingerprintFilter);
+        this.registerReceiver(mCNRequestReceiver, CNRequestFilter);
+        this.registerReceiver(mViewImageURLReceiver, ImageURLRequestFilter);
+        this.registerReceiver(mRequestNextCoordinates, nextCoordinateRequestFilter);
+        this.registerReceiver(mSendCoordToMap, sendCoordToMapRequestFilter);
     }
 
     @Override
     public void onPause() {
         this.unregisterReceiver(this.mCoordinateChangeReceiver);
         this.unregisterReceiver(this.mFingerprintReceiver);
+        this.unregisterReceiver(this.mCNRequestReceiver);
+        this.unregisterReceiver(this.mViewImageURLReceiver);
+        this.unregisterReceiver(this.mRequestNextCoordinates);
+        this.unregisterReceiver(this.mSendCoordToMap);
         super.onPause();
     }
 
     @Override
     public void onDestroy() {
-        try {
-            this.unregisterReceiver(this.mCoordinateChangeReceiver);
-            this.unregisterReceiver(this.mFingerprintReceiver);
-        } catch (IllegalArgumentException e) {
-            Log.w(TAG, "IllegalArgumentException thrown!", e);
-        }
         Globals.disconnectBeaconManager(fingerprintingBeaconManager, isEstimoteRangingServiceReady);
         super.onDestroy();
     }
@@ -185,6 +203,12 @@ public class MainActivity extends AppCompatActivity {
                 // launch locator here
                 startActivity(new Intent(this, LocatorActivity.class));
                 break;
+            case R.id.enlarge_view:
+                if (!cameraView.isImagePresent()) break;
+                EnlargedCameraView this_view = new EnlargedCameraView(this, cameraView.curr_image_url);
+                this_view.downloadImage();
+                this_view.show();
+                break;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -194,28 +218,28 @@ public class MainActivity extends AppCompatActivity {
 
     private void beginFingerprinting() {
         // Actual fingerprinting code
-        if(!isEstimoteRangingServiceReady[0]) {
+        if (!isEstimoteRangingServiceReady[0]) {
             Globals.showDialogWithOKButton(this, "Beacon Ranging Not Ready", "Please wait until the ranging service is ready.");
             return;
         }
 
-        if(mapView.lastTouchCoordinates[0] == -1 && mapView.lastTouchCoordinates[1] == -1) {
+        if ((mapView.thisTouchCoordinates[0] == -1 && mapView.thisTouchCoordinates[1] == -1)
+                || mapView.lastTouchCoordinates[0] == -1 && mapView.lastTouchCoordinates[1] == -1) {
             Globals.showDialogWithOKButton(this, "Select Coordinates", "Please select coordinates before fingerprinting.");
             return;
         }
 
-        if(!SystemRequirementsChecker.checkWithDefaultDialogs(this)) {
+        if (!SystemRequirementsChecker.checkWithDefaultDialogs(this)) {
             Globals.showDialogWithOKButton(this,
                     "Required Permissions Not Granted",
                     "This app requires Location and Bluetooth permissions to function properly." +
-                            " Please grant these permissions and restart fingerprintingn.");
-            return;
+                            " Please grant these permissions and restart fingerprinting.");
+        } else {
+            // Send intent
+            final Intent beginFingerprinting = new Intent(FINGERPRINT_BROADCAST_ACTION);
+            beginFingerprinting.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_ONE);
+            getApplicationContext().sendBroadcast(beginFingerprinting);
         }
-
-        // Send intent
-        final Intent beginFingerprinting = new Intent(FINGERPRINT_BROADCAST_ACTION);
-        beginFingerprinting.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_ONE);
-        getApplicationContext().sendBroadcast(beginFingerprinting);
     }
 
     private void retrieveRSSIValues() {
@@ -224,7 +248,7 @@ public class MainActivity extends AppCompatActivity {
 
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setTitle("Fingerprinting...");
-        progressDialog.setMessage("Please wait - 00:" + (timeToRecord/1000) + " remaining.");
+        progressDialog.setMessage("Please wait - 00:" + (timeToRecord / 1000) + " remaining.");
         progressDialog.setIndeterminate(true);
         progressDialog.setCancelable(false);
         progressDialog.show();
@@ -232,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
         new CountDownTimer(timeToRecord, 1000) {
 
             public void onTick(long millisUntilFinished) {
-                String formatted_number = String.format(Locale.ENGLISH, "%02d", millisUntilFinished/1000);
+                String formatted_number = String.format(Locale.ENGLISH, "%02d", millisUntilFinished / 1000);
                 progressDialog.setMessage("Please wait - 00:" + formatted_number + " remaining.");
             }
 
@@ -255,7 +279,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "Processing values.");
         Log.v(TAG, "ALL Values: " + beaconRssiValues.toString());
 
-        if(beaconRssiValues.keySet().size() == 0) {
+        if (beaconRssiValues.keySet().size() == 0) {
             Globals.showDialogWithOKButton(this, "No Beacons Detected",
                     "Make sure you are in the range of beacons and that they are working.");
             return;
@@ -263,7 +287,7 @@ public class MainActivity extends AppCompatActivity {
 
         String message = "In this fingerprint, the following number of RSSIs were collected for each of the following beacons:\n";
 
-        for(Integer key : beaconRssiValues.keySet()) {
+        for (Integer key : beaconRssiValues.keySet()) {
             message += (key + " - " + beaconRssiValues.get(key).size() + " values.\n");
         }
         message += "\nWould you like to submit this fingerprint?";
@@ -277,10 +301,10 @@ public class MainActivity extends AppCompatActivity {
                         dialog.dismiss();
 
                         // Process some more.
-                        for(Integer key : beaconRssiValues.keySet()) {
+                        for (Integer key : beaconRssiValues.keySet()) {
                             ArrayList<Double> RSSIs = new ArrayList<>();
-                            for(Integer rssi : beaconRssiValues.get(key)) {
-                                RSSIs.add((double)rssi);
+                            for (Integer rssi : beaconRssiValues.get(key)) {
+                                RSSIs.add((double) rssi);
                             }
                             Double avg = MathFunctions.doubleRound(MathFunctions.trimmedMean(RSSIs, PERCENT_CUTOFF), DECIMAL_PLACES);
                             averageBeaconRSSIValues.put(key, avg);
@@ -289,12 +313,12 @@ public class MainActivity extends AppCompatActivity {
                         Log.v(TAG, "AVERAGED Values: " + averageBeaconRSSIValues.toString());
 
                         // Put in location information
-                        locationInfo.put("x", mapView.lastTouchCoordinates[0]);
-                        locationInfo.put("y", mapView.lastTouchCoordinates[1]);
+                        locationInfo.put("x", mapView.thisTouchCoordinates[0]);
+                        locationInfo.put("y", mapView.thisTouchCoordinates[1]);
                         locationInfo.put("floor_num", 0);   // Will be dynamic in production
                         locationInfo.put("floor", "Ground Floor");  // Will be dynamic in production
 
-                        for(Integer beacon : averageBeaconRSSIValues.keySet()) {
+                        for (Integer beacon : averageBeaconRSSIValues.keySet()) {
                             Map<String, Object> values = new HashMap<>();
                             values.put("major", beacon);
                             values.put("rssi", averageBeaconRSSIValues.get(beacon));
@@ -365,8 +389,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error)
-            {
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
                 // Request failed
                 Globals.showSnackbar(findViewById(android.R.id.content), "Fingerprinting failed.");
 
@@ -418,9 +441,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void clearCoordinates() {
+        Arrays.fill(mapView.thisTouchCoordinates, -1);
         Arrays.fill(mapView.lastTouchCoordinates, -1);
-        coordView.setText("None");
+        coordView.setText("Select your initial camera view.");
         mapView.invalidate();
+        cameraView.setImage(ImageSource.resource(R.drawable.placeholder));
     }
 
     private void clearMaps() {
@@ -433,20 +458,69 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Receives notification that the selected coordinates have been changed.
-    private class coordinateChangeReceiver extends BroadcastReceiver {
+    private class CoordinateChangeReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             // Change coordinates on screen
-            coordView.setText("(" + mapView.lastTouchCoordinates[0] + ", " + mapView.lastTouchCoordinates[1] + ")");
+            coordView.setText("(" + mapView.thisTouchCoordinates[0] + ", " + mapView.thisTouchCoordinates[1] + ")");
         }
     }
 
-    private class fingerprintReceiver extends BroadcastReceiver {
+    private class CNRequestReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final Bundle intentPayload = intent.getExtras();
+            final float x_c = (float) intentPayload.get("x_c");
+            final float y_c = (float) intentPayload.get("y_c");
+            final float x_n = (float) intentPayload.get("x_n");
+            final float y_n = (float) intentPayload.get("y_n");
+
+            cameraView.updateCameraView(x_c, y_c, x_n, y_n);
+        }
+    }
+
+    private class ImageURLReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final Bundle intentPayload = intent.getExtras();
+            final String view_image_url = (String) intentPayload.get("url");
+
+            assert (view_image_url != null);
+
+            new DownloadImageTask(cameraView).execute(view_image_url);
+        }
+    }
+
+    private class DisplayInstructionsToSelectNextCoord extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            mapView.invalidate();
+            coordView.setText("Set approximate fingerprinting location.");
+        }
+    }
+
+    private class SendNewCoordinatesFromViewToMap extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final Bundle intentPayload = intent.getExtras();
+            final float new_x = (float)(double)intentPayload.get("x");
+            final float new_y = (float)(double)intentPayload.get("y");
+            mapView.lastTouchCoordinates[0] = new_x;
+            mapView.lastTouchCoordinates[1] = new_y;
+
+            Intent change_coordinate_text = new Intent(MapView.COORDINATE_TEXT_UPDATE_BROADCAST);
+            context.sendBroadcast(change_coordinate_text);
+
+            mapView.invalidate();
+        }
+    }
+
+    private class FingerprintReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "Intent received.");
             final Bundle intentPayload = intent.getExtras();
-            final fingerprintingPhase target = (fingerprintingPhase)intentPayload.get(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY);
+            final fingerprintingPhase target = (fingerprintingPhase) intentPayload.get(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY);
 
             assert (target != null);
 
@@ -464,12 +538,78 @@ public class MainActivity extends AppCompatActivity {
                     break;
 
                 case SHOW_SUCCESS_MESSAGE:
-                    Globals.showSnackbar(findViewById(android.R.id.content), "Fingerprinting complete at (" + mapView.lastTouchCoordinates[0] + ", " + mapView.lastTouchCoordinates[1] + ").");
+                    Globals.showSnackbar(findViewById(android.R.id.content), "Fingerprinting complete at (" + mapView.thisTouchCoordinates[0] + ", " + mapView.thisTouchCoordinates[1] + ").");
                     break;
 
             }
-
         }
     }
 
+    private class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
+        CameraView cView;
+
+        public DownloadImageTask(CameraView cView) {
+            this.cView = cView;
+        }
+
+        protected Bitmap doInBackground(String... urls) {
+            String urldisplay = urls[0];
+            Bitmap decoded_stream = null;
+            try {
+                InputStream in = new java.net.URL(urldisplay).openStream();
+                decoded_stream = BitmapFactory.decodeStream(in);
+            } catch (Exception e) {
+                Log.e("Error", e.getMessage());
+                e.printStackTrace();
+            }
+
+            return decoded_stream;
+        }
+
+        protected void onPostExecute(Bitmap result) {
+            cView.setImage(ImageSource.bitmap(result));
+            cView.setImagePresent(true);
+        }
+    }
+
+    private class EnlargedCameraView extends Dialog {
+
+        Context context;
+        String image_url;
+        CameraView cView;
+
+        public EnlargedCameraView(Context context, String img_url) {
+            super(context);
+            this.context = context;
+            image_url = img_url;
+            // this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+            this.setContentView(R.layout.cameraview_enlarged);
+            cView = (CameraView) findViewById(R.id.enlargedCameraView);
+            this.setTitle("Enlarged Camera View");
+            this.setCancelable(false);
+            this.setCanceledOnTouchOutside(false);
+
+            Button fButton = (Button) findViewById(R.id.ecvFingerprintButton);
+            Button cButton = (Button) findViewById(R.id.closeButton);
+
+            fButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dismiss();
+                    beginFingerprinting();
+                }
+            });
+
+            cButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dismiss();
+                }
+            });
+        }
+
+        public void downloadImage() {
+            new DownloadImageTask(cView).execute(image_url);
+        }
+    }
 }

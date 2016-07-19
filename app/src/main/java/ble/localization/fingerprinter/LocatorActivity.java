@@ -289,8 +289,8 @@ public class LocatorActivity extends AppCompatActivity {
                 final Intent updateMapView = new Intent(LOCATOR_BROADCAST_ACTION);
                 updateMapView.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_THREE);
                 try {
-                    mapView.lastTouchCoordinates[0] = (float)(double)coordinates.get(0);
-                    mapView.lastTouchCoordinates[1] = (float)(double)coordinates.get(1);
+                    mapView.thisTouchCoordinates[0] = (float)(double)coordinates.get(0);
+                    mapView.thisTouchCoordinates[1] = (float)(double)coordinates.get(1);
                 } catch (JSONException e) {
                     Log.e(TAG, "Unexpected JSON Exception.", e);
                     return;
@@ -336,7 +336,7 @@ public class LocatorActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             // Change coordinates on screen
-            coordView.setText("(" + mapView.lastTouchCoordinates[0] + ", " + mapView.lastTouchCoordinates[1] + ")");
+            coordView.setText("(" + mapView.thisTouchCoordinates[0] + ", " + mapView.thisTouchCoordinates[1] + ")");
         }
     }
 

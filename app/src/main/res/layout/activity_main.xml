@@ -21,7 +21,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="None"
+        android:text="Select your initial camera view."
         android:id="@+id/coordinateText"
         android:layout_marginStart="0dp"
         android:paddingBottom="10dp"/>
@@ -29,7 +29,7 @@
     <ble.localization.fingerprinter.MapView
         android:id="@+id/mapView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"/>
 
     <RelativeLayout
         android:id="@+id/relativeLayout1"
@@ -49,7 +49,15 @@
             android:layout_height="wrap_content"
             android:text="Clear"
             android:id="@+id/clearButton"
-            android:layout_alignParentEnd="true"/>
+            android:layout_below="@id/fingerprintButton"/>
+
+        <ble.localization.fingerprinter.CameraView
+            android:id="@+id/cameraView"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
+            android:adjustViewBounds="true"/>
 
     </RelativeLayout>
 
