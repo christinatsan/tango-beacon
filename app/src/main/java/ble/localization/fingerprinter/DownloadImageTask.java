@@ -13,6 +13,9 @@ import java.io.InputStream;
  * Created by vishnunair on 7/21/16.
  */
 public class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
+
+    private static final String TAG = "DownloadImageTask";
+
     private CameraView cView;
 
     public DownloadImageTask(CameraView cView) {
@@ -26,8 +29,7 @@ public class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
             InputStream in = new java.net.URL(urldisplay).openStream();
             decoded_stream = BitmapFactory.decodeStream(in);
         } catch (Exception e) {
-            Log.e("Error", e.getMessage());
-            e.printStackTrace();
+            Log.e(TAG, "Error!", e);
         }
 
         return decoded_stream;

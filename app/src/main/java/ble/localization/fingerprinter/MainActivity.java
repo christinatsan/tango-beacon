@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int timeToRecord = 15000;
     private static final String URL_ENDPOINT = "/fingerprint";
 
-    // The map view
+    // The map and camera views
     private MapView mapView;
     private CameraView cameraView;
 
@@ -238,7 +238,7 @@ public class MainActivity extends AppCompatActivity {
             // Send intent
             final Intent beginFingerprinting = new Intent(FINGERPRINT_BROADCAST_ACTION);
             beginFingerprinting.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_ONE);
-            getApplicationContext().sendBroadcast(beginFingerprinting);
+            sendBroadcast(beginFingerprinting);
         }
     }
 
@@ -268,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
                 // Send intent
                 final Intent nextPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
                 nextPhaseBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_TWO);
-                getApplicationContext().sendBroadcast(nextPhaseBroadcast);
+                sendBroadcast(nextPhaseBroadcast);
                 Log.d(TAG, "Retrieval done.");
             }
         }.start();
@@ -339,7 +339,7 @@ public class MainActivity extends AppCompatActivity {
                         // Send intent
                         final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
                         finalPhaseBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_THREE);
-                        getApplicationContext().sendBroadcast(finalPhaseBroadcast);
+                        sendBroadcast(finalPhaseBroadcast);
                     }
                 })
                 .setNegativeButton("No", new DialogInterface.OnClickListener() {
@@ -383,7 +383,7 @@ public class MainActivity extends AppCompatActivity {
                 // Send intent to complete process
                 final Intent notifyBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
                 notifyBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.SHOW_SUCCESS_MESSAGE);
-                getApplicationContext().sendBroadcast(notifyBroadcast);
+                sendBroadcast(notifyBroadcast);
                 // Clear maps to prepare for next fingerprint
                 clearMaps();
             }
@@ -411,7 +411,7 @@ public class MainActivity extends AppCompatActivity {
                                 // Send intent
                                 final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
                                 finalPhaseBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_THREE);
-                                getApplicationContext().sendBroadcast(finalPhaseBroadcast);
+                                sendBroadcast(finalPhaseBroadcast);
                             }
                         })
                         .show();
@@ -422,13 +422,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onRetry(int retryNo) {
                 // Request was retried
-                progressDialog.setTitle("Sending values...Attempt #" + retryNo);
+                progressDialog.setTitle("Sending values (Attempt #" + retryNo + ")");
             }
 
             @Override
             public void onProgress(long bytesWritten, long totalSize) {
                 // Progress notification
-                progressDialog.setMessage("Please wait. " + bytesWritten + " of " + totalSize + " bytes sent.");
+                progressDialog.setMessage("Please wait. " + bytesWritten + " of " + totalSize + " sent.");
             }
 
             @Override
@@ -443,6 +443,8 @@ public class MainActivity extends AppCompatActivity {
     private void clearCoordinates() {
         Arrays.fill(mapView.thisTouchCoordinates, -1);
         Arrays.fill(mapView.lastTouchCoordinates, -1);
+        Arrays.fill(cameraView.lastTouchPixelCoordinates, -1);
+        Arrays.fill(cameraView.lastTouchRealCoordinates, -1);
         coordView.setText("Select your initial camera view.");
         mapView.invalidate();
         cameraView.setImage(ImageSource.resource(R.drawable.placeholder));

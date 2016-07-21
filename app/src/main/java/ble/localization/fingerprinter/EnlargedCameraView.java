@@ -11,6 +11,8 @@ import android.widget.Button;
  */
 public class EnlargedCameraView extends Dialog {
 
+    private static final String TAG = "EnlargedCameraView";
+
     private Context context;
     private String image_url;
     private CameraView cView;
