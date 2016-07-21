@@ -37,6 +37,7 @@ public class CameraView extends SubsamplingScaleImageView implements View.OnTouc
     private static final int actionToBeHandled = MotionEvent.ACTION_DOWN;
 
     private static final String CAMERA_FETCH_URL_ENDPOINT = "/camera_view";
+    private static final String COORDINATE_FETCH_URL_ENDPOINT = "/camera_view_coord";
 
     protected Context context;
     private boolean imagePresent;
@@ -114,7 +115,7 @@ public class CameraView extends SubsamplingScaleImageView implements View.OnTouc
         lastTouchPixelCoordinates[1] = point.y;
 
         final AsyncHttpClient client = new AsyncHttpClient();
-        final String url = Globals.SERVER_BASE_URL + CAMERA_FETCH_URL_ENDPOINT +
+        final String url = Globals.SERVER_BASE_URL + COORDINATE_FETCH_URL_ENDPOINT +
                 "?x_p=" + lastTouchPixelCoordinates[0] + "&y_p=" + lastTouchPixelCoordinates[1] +
                 "&id=" + curr_image_id;
 

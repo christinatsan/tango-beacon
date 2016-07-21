@@ -1,15 +1,11 @@
 package ble.localization.fingerprinter;
 
-import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.support.v7.app.AlertDialog;
@@ -19,7 +15,6 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -33,7 +28,6 @@ import com.loopj.android.http.AsyncHttpResponseHandler;
 
 import org.json.JSONObject;
 
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -71,16 +65,19 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver mViewImageURLReceiver = new ImageURLReceiver();
     private BroadcastReceiver mRequestNextCoordinates = new DisplayInstructionsToSelectNextCoord();
     private BroadcastReceiver mSendCoordToMap = new SendNewCoordinatesFromViewToMap();
+    private BroadcastReceiver mBeginFingerprinting = new BeginFingerprintingReceiver();
     private IntentFilter coordinateChangeFilter = new IntentFilter(MapView.COORDINATE_TEXT_UPDATE_BROADCAST);
     private IntentFilter fingerprintFilter = new IntentFilter(FINGERPRINT_BROADCAST_ACTION);
     private IntentFilter CNRequestFilter = new IntentFilter(MapView.PROVIDE_C_AND_N_VALUES);
     private IntentFilter ImageURLRequestFilter = new IntentFilter(CameraView.SEND_IMAGE_URL_BROADCAST);
     private IntentFilter nextCoordinateRequestFilter = new IntentFilter(MapView.SELECT_NEXT_COORDINATE_REQUEST);
     private IntentFilter sendCoordToMapRequestFilter = new IntentFilter(CameraView.SEND_COORD_TO_MAP_BROADCAST);
+    private IntentFilter beginFingerprintingFilter = new IntentFilter(BEGIN_FINGERPINTING_BROADCAST);
 
     // Broadcast-related objects
     private TextView coordView;
     public static final String FINGERPRINT_BROADCAST_ACTION = "ble.localization.fingerprinter.FINGERPRINT";
+    public static final String BEGIN_FINGERPINTING_BROADCAST = "ble.localization.fingerprinter.BEGIN_FP";
 
     protected enum fingerprintingPhase {
         PHASE_ONE,
@@ -124,7 +121,8 @@ public class MainActivity extends AppCompatActivity {
         fingerprintButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                beginFingerprinting();
+                final Intent beginFingerprinting = new Intent(MainActivity.BEGIN_FINGERPINTING_BROADCAST);
+                sendBroadcast(beginFingerprinting);
             }
         });
 
@@ -171,6 +169,7 @@ public class MainActivity extends AppCompatActivity {
         this.registerReceiver(mViewImageURLReceiver, ImageURLRequestFilter);
         this.registerReceiver(mRequestNextCoordinates, nextCoordinateRequestFilter);
         this.registerReceiver(mSendCoordToMap, sendCoordToMapRequestFilter);
+        this.registerReceiver(mBeginFingerprinting, beginFingerprintingFilter);
     }
 
     @Override
@@ -181,6 +180,7 @@ public class MainActivity extends AppCompatActivity {
         this.unregisterReceiver(this.mViewImageURLReceiver);
         this.unregisterReceiver(this.mRequestNextCoordinates);
         this.unregisterReceiver(this.mSendCoordToMap);
+        this.unregisterReceiver(this.mBeginFingerprinting);
         super.onPause();
     }
 
@@ -545,71 +545,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
-        CameraView cView;
-
-        public DownloadImageTask(CameraView cView) {
-            this.cView = cView;
-        }
-
-        protected Bitmap doInBackground(String... urls) {
-            String urldisplay = urls[0];
-            Bitmap decoded_stream = null;
-            try {
-                InputStream in = new java.net.URL(urldisplay).openStream();
-                decoded_stream = BitmapFactory.decodeStream(in);
-            } catch (Exception e) {
-                Log.e("Error", e.getMessage());
-                e.printStackTrace();
-            }
-
-            return decoded_stream;
-        }
-
-        protected void onPostExecute(Bitmap result) {
-            cView.setImage(ImageSource.bitmap(result));
-            cView.setImagePresent(true);
-        }
-    }
-
-    private class EnlargedCameraView extends Dialog {
-
-        Context context;
-        String image_url;
-        CameraView cView;
-
-        public EnlargedCameraView(Context context, String img_url) {
-            super(context);
-            this.context = context;
-            image_url = img_url;
-            // this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-            this.setContentView(R.layout.cameraview_enlarged);
-            cView = (CameraView) findViewById(R.id.enlargedCameraView);
-            this.setTitle("Enlarged Camera View");
-            this.setCancelable(false);
-            this.setCanceledOnTouchOutside(false);
-
-            Button fButton = (Button) findViewById(R.id.ecvFingerprintButton);
-            Button cButton = (Button) findViewById(R.id.closeButton);
-
-            fButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    dismiss();
-                    beginFingerprinting();
-                }
-            });
-
-            cButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    dismiss();
-                }
-            });
-        }
-
-        public void downloadImage() {
-            new DownloadImageTask(cView).execute(image_url);
+    private class BeginFingerprintingReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            beginFingerprinting();
         }
     }
 }
