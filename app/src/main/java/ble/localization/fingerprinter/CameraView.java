@@ -18,13 +18,10 @@ import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.JsonHttpResponseHandler;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 
 import cz.msebera.android.httpclient.Header;
 
@@ -46,20 +43,19 @@ public class CameraView extends SubsamplingScaleImageView implements View.OnTouc
 
     private float[] values = new float[9];
     Matrix imageMatrix = new Matrix();
-    public float[] lastTouchCoordinates = new float[2];
+    public float[] lastTouchPixelCoordinates = new float[2];
+    public float[] lastTouchRealCoordinates = new float[2];
 
     Paint paint = new Paint();
 
-    protected LinkedHashMap<String, ArrayList<Float>> C_N_values = new LinkedHashMap<>();
     protected String curr_image_url;
-
-    protected JSONArray rgb_array;
-    protected JSONArray pos_array;
+    protected String curr_image_id;
 
     public CameraView(Context context, AttributeSet attr) {
         super(context, attr);
         this.context = context;
-        Arrays.fill(lastTouchCoordinates, defaultCoord);
+        Arrays.fill(lastTouchPixelCoordinates, defaultCoord);
+        Arrays.fill(lastTouchRealCoordinates, defaultCoord);
         imagePresent = false;
     }
 
@@ -73,12 +69,12 @@ public class CameraView extends SubsamplingScaleImageView implements View.OnTouc
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        if(lastTouchCoordinates[0] == defaultCoord && lastTouchCoordinates[1] == defaultCoord) return;
+        if(lastTouchPixelCoordinates[0] == defaultCoord && lastTouchPixelCoordinates[1] == defaultCoord) return;
 
         float density = getResources().getDisplayMetrics().densityDpi;
         int strokeWidth = (int)(density/60f);
 
-        PointF view_coords = sourceToViewCoord(lastTouchCoordinates[0], lastTouchCoordinates[1]);
+        PointF view_coords = sourceToViewCoord(lastTouchPixelCoordinates[0], lastTouchPixelCoordinates[1]);
 
         float radius = (getScale() * getSWidth()) * 0.01f;
 
@@ -114,39 +110,52 @@ public class CameraView extends SubsamplingScaleImageView implements View.OnTouc
         float relativeX = MathFunctions.floatRound(((event.getX() - values[2]) / values[0]), 2);
         float relativeY = MathFunctions.floatRound(((event.getY() - values[5]) / values[4]), 2);
         PointF point = viewToSourceCoord(relativeX, relativeY);
-        lastTouchCoordinates[0] = point.x;
-        lastTouchCoordinates[1] = point.y;
-        final float[] real_coordinates = new float[3];
+        lastTouchPixelCoordinates[0] = point.x;
+        lastTouchPixelCoordinates[1] = point.y;
 
-        // Find correspondence between view pixels and real position (on floor plan).
-        int x_as_int = (int) point.x;
-        int y_as_int = (int) point.y;
-        int pos_array_index = x_as_int * y_as_int;
-        JSONArray coords_at_pos;
-        try {
-            coords_at_pos = new JSONArray(pos_array.getString(pos_array_index));
-        } catch (JSONException e) {
-            e.printStackTrace();
-            coords_at_pos = null;
-        }
-        // Assign real coordinates to real_coordinates.
-        assert (coords_at_pos != null);
-        try {
-            real_coordinates[0] = (float)(double) coords_at_pos.get(0);
-            real_coordinates[1] = (float)(double) coords_at_pos.get(1);
-            real_coordinates[2] = (float)(double) coords_at_pos.get(2);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        final AsyncHttpClient client = new AsyncHttpClient();
+        final String url = Globals.SERVER_BASE_URL + CAMERA_FETCH_URL_ENDPOINT +
+                "?x_p=" + lastTouchPixelCoordinates[0] + "&y_p=" + lastTouchPixelCoordinates[1] +
+                "&id=" + curr_image_id;
+
+        client.get(url, new JsonHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, JSONObject responseBody) {
+                // Successfully got a response
+                try {
+                    lastTouchRealCoordinates[0] = (float)(double) responseBody.get("x");
+                    lastTouchRealCoordinates[1] = (float)(double) responseBody.get("y");
+                } catch (JSONException e) {
+                    Log.e(TAG, "Unexpected JSON Exception.", e);
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, Throwable error, JSONObject responseBody)
+            {
+                // Request failed
+                setImagePresent(false);
+                View root_view = ((Activity)context).getWindow().getDecorView().findViewById(android.R.id.content);
+
+                if (statusCode == 503) {
+                    Globals.showSnackbar(root_view, "Matlab unavailable on server. View not retrieved.");
+                } else {
+                    Globals.showSnackbar(root_view, "Unable to retrieve real coordinates. (Status code: " + statusCode + ")");
+                }
+            }
+        });
 
         // Show selected coordinates on screen and/or log.
-        Log.d(TAG, "X-Coordinate: " + lastTouchCoordinates[0]);
-        Log.d(TAG, "Y-Coordinate: " + lastTouchCoordinates[1]);
+        Log.d(TAG, "X-Coordinate (Pixel): " + lastTouchPixelCoordinates[0]);
+        Log.d(TAG, "Y-Coordinate (Pixel): " + lastTouchPixelCoordinates[1]);
+
+        Log.d(TAG, "X-Coordinate (Real): " + lastTouchRealCoordinates[0]);
+        Log.d(TAG, "Y-Coordinate (Real): " + lastTouchRealCoordinates[1]);
 
         // Change the map view's dot (i.e. assign these real coordinates to map view).
         Intent send_to_map = new Intent(SEND_COORD_TO_MAP_BROADCAST);
-        send_to_map.putExtra("x", real_coordinates[0]);
-        send_to_map.putExtra("y", real_coordinates[1]);
+        send_to_map.putExtra("x", lastTouchRealCoordinates[0]);
+        send_to_map.putExtra("y", lastTouchRealCoordinates[1]);
         context.sendBroadcast(send_to_map);
 
         invalidate();
@@ -171,17 +180,10 @@ public class CameraView extends SubsamplingScaleImageView implements View.OnTouc
 
         client.get(url, new JsonHttpResponseHandler() {
             @Override
-            public void onStart() {
-                // Initiated the request
-            }
-
-            @Override
             public void onSuccess(int statusCode, Header[] headers, JSONObject responseBody) {
                 // Successfully got a response
                 try {
-                    rgb_array = responseBody.getJSONArray("rgb_array");  // what type is this?
-                    pos_array = responseBody.getJSONArray("pos_array"); // what type is this too?
-                    // TODO: Convert above to compatible type that we can work with.
+                    curr_image_id = (String)responseBody.get("id");
                     curr_image_url = (String)responseBody.get("url");
                 } catch (JSONException e) {
                     Log.e(TAG, "Unexpected JSON Exception.", e);
@@ -205,22 +207,6 @@ public class CameraView extends SubsamplingScaleImageView implements View.OnTouc
                 } else {
                     Globals.showSnackbar(root_view, "Unable to retrieve view. (Status code: " + statusCode + ")");
                 }
-            }
-
-            @Override
-            public void onRetry(int retryNo) {
-                // Request was retried
-            }
-
-            @Override
-            public void onProgress(long bytesWritten, long totalSize) {
-                // Progress notification
-            }
-
-            @Override
-            public void onFinish() {
-                // Completed the request (either success or failure)
-
             }
         });
     }
