@@ -128,6 +128,21 @@ public class CameraView extends SubsamplingScaleImageView implements View.OnTouc
                 } catch (JSONException e) {
                     Log.e(TAG, "Unexpected JSON Exception.", e);
                 }
+
+                // Show selected coordinates on screen and/or log.
+                Log.d(TAG, "X-Coordinate (Pixel): " + lastTouchPixelCoordinates[0]);
+                Log.d(TAG, "Y-Coordinate (Pixel): " + lastTouchPixelCoordinates[1]);
+
+                Log.d(TAG, "X-Coordinate (Real): " + lastTouchRealCoordinates[0]);
+                Log.d(TAG, "Y-Coordinate (Real): " + lastTouchRealCoordinates[1]);
+
+                // Change the map view's dot (i.e. assign these real coordinates to map view).
+                Intent send_to_map = new Intent(SEND_COORD_TO_MAP_BROADCAST);
+                send_to_map.putExtra("x", lastTouchRealCoordinates[0]);
+                send_to_map.putExtra("y", lastTouchRealCoordinates[1]);
+                context.sendBroadcast(send_to_map);
+
+                invalidate();
             }
 
             @Override
@@ -144,21 +159,6 @@ public class CameraView extends SubsamplingScaleImageView implements View.OnTouc
                 }
             }
         });
-
-        // Show selected coordinates on screen and/or log.
-        Log.d(TAG, "X-Coordinate (Pixel): " + lastTouchPixelCoordinates[0]);
-        Log.d(TAG, "Y-Coordinate (Pixel): " + lastTouchPixelCoordinates[1]);
-
-        Log.d(TAG, "X-Coordinate (Real): " + lastTouchRealCoordinates[0]);
-        Log.d(TAG, "Y-Coordinate (Real): " + lastTouchRealCoordinates[1]);
-
-        // Change the map view's dot (i.e. assign these real coordinates to map view).
-        Intent send_to_map = new Intent(SEND_COORD_TO_MAP_BROADCAST);
-        send_to_map.putExtra("x", lastTouchRealCoordinates[0]);
-        send_to_map.putExtra("y", lastTouchRealCoordinates[1]);
-        context.sendBroadcast(send_to_map);
-
-        invalidate();
 
         return true;
     }
