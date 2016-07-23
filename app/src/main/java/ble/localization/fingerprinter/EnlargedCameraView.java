@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 /**
  * Created by vishnunair on 7/21/16.
@@ -30,6 +31,9 @@ public class EnlargedCameraView extends Dialog {
 
         Button fButton = (Button) findViewById(R.id.ecvFingerprintButton);
         Button cButton = (Button) findViewById(R.id.closeButton);
+        TextView coordText = (TextView) findViewById(R.id.realCoordinateText);
+
+        cView.setECVCoordinateTextView(coordText);
 
         fButton.setOnClickListener(new View.OnClickListener() {
             @Override

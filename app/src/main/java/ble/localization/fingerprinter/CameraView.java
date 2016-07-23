@@ -13,6 +13,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.TextView;
 
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 import com.loopj.android.http.AsyncHttpClient;
@@ -51,6 +52,7 @@ public class CameraView extends SubsamplingScaleImageView implements View.OnTouc
 
     protected String curr_image_url;
     protected String curr_image_id;
+    private TextView enlargedCameraViewCoordinateTextView = null;
 
     public CameraView(Context context, AttributeSet attr) {
         super(context, attr);
@@ -65,6 +67,10 @@ public class CameraView extends SubsamplingScaleImageView implements View.OnTouc
     }
 
     public boolean isImagePresent() { return imagePresent; }
+
+    public void setECVCoordinateTextView(TextView tv) {
+        this.enlargedCameraViewCoordinateTextView = tv;
+    }
 
     @Override
     public void onDraw(Canvas canvas) {
@@ -142,6 +148,10 @@ public class CameraView extends SubsamplingScaleImageView implements View.OnTouc
                 send_to_map.putExtra("x", lastTouchRealCoordinates[0]);
                 send_to_map.putExtra("y", lastTouchRealCoordinates[1]);
                 context.sendBroadcast(send_to_map);
+
+                if(enlargedCameraViewCoordinateTextView != null) {
+                    enlargedCameraViewCoordinateTextView.setText("(" + lastTouchRealCoordinates[0] + ", " + lastTouchRealCoordinates[1] + ")");
+                }
 
                 invalidate();
             }
