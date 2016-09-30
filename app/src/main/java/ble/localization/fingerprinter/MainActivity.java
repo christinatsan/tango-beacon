@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.support.v7.app.AlertDialog;
@@ -95,6 +96,16 @@ public class MainActivity extends AppCompatActivity {
     private LinkedHashMap<String, Object> locationInfo = new LinkedHashMap<>();
     private String jsonFingerprintRequestString;
 
+    private static final String[] floor_names = {"C-Level", "Ground Floor"};  // Manually set
+    private static final int floor_start_index = 1; // Manually set
+    private int floor_curr_index = floor_start_index;
+    private Resources resources = this.getResources();
+
+    protected int getFloorPlanResourceID(String name) {
+        // Map names are of the format: "Floor Name_map"
+        return resources.getIdentifier(name + "_map", "drawable", this.getPackageName());
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -105,7 +116,8 @@ public class MainActivity extends AppCompatActivity {
         loading_dialog.setCanceledOnTouchOutside(false);
 
         mapView = (MapView) findViewById(R.id.mapView);
-        mapView.setImage(ImageSource.resource(R.drawable.home_floor_plan));
+        int startPlanResID = getFloorPlanResourceID(floor_names[floor_curr_index]);
+        mapView.setImage(ImageSource.resource(startPlanResID));
 
         cameraView = (CameraView) findViewById(R.id.cameraView);
         cameraView.setImage(ImageSource.resource(R.drawable.placeholder));
@@ -209,6 +221,25 @@ public class MainActivity extends AppCompatActivity {
                 this_view.downloadImage();
                 this_view.show();
                 break;
+            case R.id.go_down:
+                if(floor_curr_index - 1 < 0) {
+                    Globals.showSnackbar(findViewById(android.R.id.content),
+                            "You're on the bottommost floor!");
+                    break;
+                }
+                --floor_curr_index;
+                int lowerPlanResID = getFloorPlanResourceID(floor_names[floor_curr_index]);
+                mapView.setImage(ImageSource.resource(lowerPlanResID));
+                break;
+            case R.id.go_up:
+                if(floor_curr_index + 1 >= floor_names.length) {
+                    Globals.showSnackbar(findViewById(android.R.id.content),
+                            "You're on the topmost floor!");
+                    break;
+                }
+                ++floor_curr_index;
+                int higherPlanResID = getFloorPlanResourceID(floor_names[floor_curr_index]);
+                mapView.setImage(ImageSource.resource(higherPlanResID));
             default:
                 return super.onOptionsItemSelected(item);
         }

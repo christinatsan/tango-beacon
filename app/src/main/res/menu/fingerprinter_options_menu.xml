@@ -3,4 +3,8 @@
         android:title="Locator" />
     <item android:id="@+id/enlarge_view"
         android:title="Enlarge Camera View" />
+    <item android:id="@+id/go_down"
+        android:title="Go Down a Level" />
+    <item android:id="@+id/go_up"
+        android:title="Go Up a Level" />
 </menu>
