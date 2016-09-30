@@ -97,11 +97,16 @@ public class MainActivity extends AppCompatActivity {
     private String jsonFingerprintRequestString;
 
     private int floor_curr_index = Globals.floor_start_index;
-    private Resources resources = this.getResources();
+    private Resources resources;
 
     protected int getFloorPlanResourceID(String name) throws Resources.NotFoundException {
         // Map names are of the format: "Floor Name_map"
         return resources.getIdentifier(name + "_map", "drawable", this.getPackageName());
+    }
+
+    protected String formatToValidResourceName(String floor) {
+        // Make lowercase and remove all whitespace
+        return floor.toLowerCase().replaceAll("\\s+","");
     }
 
     @Override
@@ -109,12 +114,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        resources = this.getResources();
+
         ProgressDialog loading_dialog = ProgressDialog.show(MainActivity.this, "Loading map", "Please wait...", true);
         loading_dialog.setCancelable(false);
         loading_dialog.setCanceledOnTouchOutside(false);
 
         mapView = (MapView) findViewById(R.id.mapView);
-        int startPlanResID = getFloorPlanResourceID(Globals.floor_names[floor_curr_index]);
+        int startPlanResID = getFloorPlanResourceID(formatToValidResourceName(Globals.floor_names[floor_curr_index]));
         mapView.setImage(ImageSource.resource(startPlanResID));
 
         cameraView = (CameraView) findViewById(R.id.cameraView);
@@ -214,7 +221,11 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(this, LocatorActivity.class));
                 break;
             case R.id.enlarge_view:
-                if (!cameraView.isImagePresent()) break;
+                if (!cameraView.isImagePresent()) {
+                    Globals.showSnackbar(findViewById(android.R.id.content),
+                            "There is no camera view to enlarge!");
+                    break;
+                }
                 EnlargedCameraView this_view = new EnlargedCameraView(this, cameraView.curr_image_url);
                 this_view.downloadImage();
                 this_view.show();
@@ -226,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 }
                 --floor_curr_index;
-                int lowerPlanResID = getFloorPlanResourceID(Globals.floor_names[floor_curr_index]);
+                int lowerPlanResID = getFloorPlanResourceID(formatToValidResourceName(Globals.floor_names[floor_curr_index]));
                 mapView.setImage(ImageSource.resource(lowerPlanResID));
                 clearCoordinates();
                 break;
@@ -237,7 +248,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 }
                 ++floor_curr_index;
-                int higherPlanResID = getFloorPlanResourceID(Globals.floor_names[floor_curr_index]);
+                int higherPlanResID = getFloorPlanResourceID(formatToValidResourceName(Globals.floor_names[floor_curr_index]));
                 mapView.setImage(ImageSource.resource(higherPlanResID));
                 clearCoordinates();
                 break;

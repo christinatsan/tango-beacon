@@ -81,11 +81,16 @@ public class LocatorActivity extends AppCompatActivity {
 
     private int floor_curr_index = Globals.floor_start_index;
     private String curr_floor = Globals.floor_names[floor_curr_index];
-    private Resources resources = this.getResources();
+    private Resources resources;
 
     protected int getFloorPlanResourceID(String name) throws Resources.NotFoundException {
         // Map names are of the format: "Floor Name_map"
         return resources.getIdentifier(name + "_map", "drawable", this.getPackageName());
+    }
+
+    protected String formatToValidResourceName(String floor) {
+        // Make lowercase and remove all whitespace
+        return floor.toLowerCase().replaceAll("\\s+","");
     }
 
     @Override
@@ -93,12 +98,14 @@ public class LocatorActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_locator);
 
+        resources = this.getResources();
+
         ProgressDialog loading_dialog = ProgressDialog.show(LocatorActivity.this, "Loading map", "Please wait...", true);
         loading_dialog.setCancelable(false);
         loading_dialog.setCanceledOnTouchOutside(false);
 
         mapView = (MapView)findViewById(R.id.mapView);
-        int startPlanResID = getFloorPlanResourceID(Globals.floor_names[floor_curr_index]);
+        int startPlanResID = getFloorPlanResourceID(formatToValidResourceName(Globals.floor_names[floor_curr_index]));
         mapView.setImage(ImageSource.resource(startPlanResID));
         mapView.setTouchAllowedBool(false);
 
@@ -382,7 +389,7 @@ public class LocatorActivity extends AppCompatActivity {
                     Intent in = new Intent(MapView.COORDINATE_TEXT_UPDATE_BROADCAST);
                     context.sendBroadcast(in);
                     // Update the map view
-                    int newFloorResID = getFloorPlanResourceID(curr_floor);
+                    int newFloorResID = getFloorPlanResourceID(formatToValidResourceName(curr_floor));
                     mapView.setImage(ImageSource.resource(newFloorResID));
                     mapView.invalidate();
                     break;
