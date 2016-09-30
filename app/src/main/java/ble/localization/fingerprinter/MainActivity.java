@@ -346,8 +346,8 @@ public class MainActivity extends AppCompatActivity {
                         // Put in location information
                         locationInfo.put("x", mapView.thisTouchCoordinates[0]);
                         locationInfo.put("y", mapView.thisTouchCoordinates[1]);
-                        locationInfo.put("floor_num", 0);   // Will be dynamic in production
-                        locationInfo.put("floor", "Ground Floor");  // Will be dynamic in production
+                        locationInfo.put("floor_num", floor_curr_index - floor_start_index);
+                        locationInfo.put("floor", floor_names[floor_curr_index]);
 
                         for (Integer beacon : averageBeaconRSSIValues.keySet()) {
                             Map<String, Object> values = new HashMap<>();
