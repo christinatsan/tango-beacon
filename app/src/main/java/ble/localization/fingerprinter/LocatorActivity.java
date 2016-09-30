@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -78,6 +79,15 @@ public class LocatorActivity extends AppCompatActivity {
     private Button locateButton;
     private boolean tapToLocateEnabled;
 
+    private int floor_curr_index = Globals.floor_start_index;
+    private String curr_floor = Globals.floor_names[floor_curr_index];
+    private Resources resources = this.getResources();
+
+    protected int getFloorPlanResourceID(String name) throws Resources.NotFoundException {
+        // Map names are of the format: "Floor Name_map"
+        return resources.getIdentifier(name + "_map", "drawable", this.getPackageName());
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -88,7 +98,8 @@ public class LocatorActivity extends AppCompatActivity {
         loading_dialog.setCanceledOnTouchOutside(false);
 
         mapView = (MapView)findViewById(R.id.mapView);
-        mapView.setImage(ImageSource.resource(R.drawable.home_floor_plan));
+        int startPlanResID = getFloorPlanResourceID(Globals.floor_names[floor_curr_index]);
+        mapView.setImage(ImageSource.resource(startPlanResID));
         mapView.setTouchAllowedBool(false);
 
         loading_dialog.dismiss();
@@ -285,6 +296,14 @@ public class LocatorActivity extends AppCompatActivity {
                     Log.e(TAG, "Unexpected JSON Exception.", e);
                     return;
                 }
+
+                try {
+                    curr_floor = responseBody.getJSONObject("content").getString("floor");
+                } catch (JSONException e) {
+                    Log.e(TAG, "Unexpected JSON Exception.", e);
+                    return;
+                }
+
                 // Send intent to complete process
                 final Intent updateMapView = new Intent(LOCATOR_BROADCAST_ACTION);
                 updateMapView.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_THREE);
@@ -363,6 +382,8 @@ public class LocatorActivity extends AppCompatActivity {
                     Intent in = new Intent(MapView.COORDINATE_TEXT_UPDATE_BROADCAST);
                     context.sendBroadcast(in);
                     // Update the map view
+                    int newFloorResID = getFloorPlanResourceID(curr_floor);
+                    mapView.setImage(ImageSource.resource(newFloorResID));
                     mapView.invalidate();
                     break;
 

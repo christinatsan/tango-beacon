@@ -23,6 +23,9 @@ public class Globals {
     protected static final String beaconRegionName = "ranged region";
     protected static final Region region = new Region(beaconRegionName, beaconRegionUUID, null, null);
 
+    static final String[] floor_names = {"C-Level", "Ground Floor"};  // Manually set
+    static final int floor_start_index = 1; // Manually set
+
     protected static void disconnectBeaconManager(BeaconManager mBeaconManager, boolean[] isEstimoteRangingServiceReady) {
         mBeaconManager.disconnect();
         isEstimoteRangingServiceReady[0] = false;

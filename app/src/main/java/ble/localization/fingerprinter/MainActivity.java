@@ -96,12 +96,10 @@ public class MainActivity extends AppCompatActivity {
     private LinkedHashMap<String, Object> locationInfo = new LinkedHashMap<>();
     private String jsonFingerprintRequestString;
 
-    private static final String[] floor_names = {"C-Level", "Ground Floor"};  // Manually set
-    private static final int floor_start_index = 1; // Manually set
-    private int floor_curr_index = floor_start_index;
+    private int floor_curr_index = Globals.floor_start_index;
     private Resources resources = this.getResources();
 
-    protected int getFloorPlanResourceID(String name) {
+    protected int getFloorPlanResourceID(String name) throws Resources.NotFoundException {
         // Map names are of the format: "Floor Name_map"
         return resources.getIdentifier(name + "_map", "drawable", this.getPackageName());
     }
@@ -116,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
         loading_dialog.setCanceledOnTouchOutside(false);
 
         mapView = (MapView) findViewById(R.id.mapView);
-        int startPlanResID = getFloorPlanResourceID(floor_names[floor_curr_index]);
+        int startPlanResID = getFloorPlanResourceID(Globals.floor_names[floor_curr_index]);
         mapView.setImage(ImageSource.resource(startPlanResID));
 
         cameraView = (CameraView) findViewById(R.id.cameraView);
@@ -228,18 +226,21 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 }
                 --floor_curr_index;
-                int lowerPlanResID = getFloorPlanResourceID(floor_names[floor_curr_index]);
+                int lowerPlanResID = getFloorPlanResourceID(Globals.floor_names[floor_curr_index]);
                 mapView.setImage(ImageSource.resource(lowerPlanResID));
+                clearCoordinates();
                 break;
             case R.id.go_up:
-                if(floor_curr_index + 1 >= floor_names.length) {
+                if(floor_curr_index + 1 >= Globals.floor_names.length) {
                     Globals.showSnackbar(findViewById(android.R.id.content),
                             "You're on the topmost floor!");
                     break;
                 }
                 ++floor_curr_index;
-                int higherPlanResID = getFloorPlanResourceID(floor_names[floor_curr_index]);
+                int higherPlanResID = getFloorPlanResourceID(Globals.floor_names[floor_curr_index]);
                 mapView.setImage(ImageSource.resource(higherPlanResID));
+                clearCoordinates();
+                break;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -346,8 +347,8 @@ public class MainActivity extends AppCompatActivity {
                         // Put in location information
                         locationInfo.put("x", mapView.thisTouchCoordinates[0]);
                         locationInfo.put("y", mapView.thisTouchCoordinates[1]);
-                        locationInfo.put("floor_num", floor_curr_index - floor_start_index);
-                        locationInfo.put("floor", floor_names[floor_curr_index]);
+                        locationInfo.put("floor_num", floor_curr_index - Globals.floor_start_index);
+                        locationInfo.put("floor", Globals.floor_names[floor_curr_index]);
 
                         for (Integer beacon : averageBeaconRSSIValues.keySet()) {
                             Map<String, Object> values = new HashMap<>();
