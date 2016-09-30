@@ -43,7 +43,7 @@ import cz.msebera.android.httpclient.protocol.HTTP;
 public class LocatorActivity extends AppCompatActivity {
 
     private static final String TAG = "LocatorActivity";
-    private static final int timeToRecord = 5000;
+    private static final int timeToRecord = 3000;
     private static final String URL_ENDPOINT = "/location";
 
     private MapView mapView;
@@ -81,6 +81,7 @@ public class LocatorActivity extends AppCompatActivity {
 
     private int floor_curr_index = Globals.floor_start_index;
     private String curr_floor = Globals.floor_names[floor_curr_index];
+    private String prev_floor = curr_floor;
     private Resources resources;
 
     protected int getFloorPlanResourceID(String name) throws Resources.NotFoundException {
@@ -389,9 +390,13 @@ public class LocatorActivity extends AppCompatActivity {
                     Intent in = new Intent(MapView.COORDINATE_TEXT_UPDATE_BROADCAST);
                     context.sendBroadcast(in);
                     // Update the map view
-                    int newFloorResID = getFloorPlanResourceID(formatToValidResourceName(curr_floor));
-                    mapView.setImage(ImageSource.resource(newFloorResID));
-                    mapView.invalidate();
+                    if(!curr_floor.equals(prev_floor)) {
+                        int newFloorResID = getFloorPlanResourceID(formatToValidResourceName(curr_floor));
+                        mapView.setImage(ImageSource.resource(newFloorResID));
+                        prev_floor = curr_floor;
+                    } else {
+                        mapView.invalidate();
+                    }
                     break;
 
             }

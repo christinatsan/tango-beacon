@@ -39,7 +39,6 @@ public class MapView extends SubsamplingScaleImageView implements View.OnTouchLi
 
     Paint paint = new Paint();
 
-
     public MapView(Context context, AttributeSet attr) {
         super(context, attr);
         this.context = context;
@@ -53,6 +52,12 @@ public class MapView extends SubsamplingScaleImageView implements View.OnTouchLi
     }
 
     @Override
+    public void onReady() {
+        super.onReady();
+        invalidate();
+    }
+
+    @Override
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
@@ -61,6 +66,8 @@ public class MapView extends SubsamplingScaleImageView implements View.OnTouchLi
         float density = getResources().getDisplayMetrics().densityDpi;
         int strokeWidth = (int)(density/60f);
 
+        Log.d(TAG, "mapView.thisTouchCoordinates: " + Arrays.toString(thisTouchCoordinates));
+        if(!isReady()) return;
         PointF view_coords = sourceToViewCoord(thisTouchCoordinates[0], thisTouchCoordinates[1]);
 
         float radius = (getScale() * getSWidth()) * 0.01f;
