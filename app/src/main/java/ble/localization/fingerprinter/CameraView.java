@@ -184,6 +184,8 @@ public class CameraView extends SubsamplingScaleImageView implements View.OnTouc
         N[1] = y_n;
         N[2] = 1.56f;   // My height in meters
 
+        if(!Globals.usingCameraViewImageFetch) return;
+
         final AsyncHttpClient client = new AsyncHttpClient();
         final String url = Globals.SERVER_BASE_URL + CAMERA_FETCH_URL_ENDPOINT +
                 "?x_c=" + C[0] + "&y_c=" + C[1] + "&z_c=" + C[2] +

@@ -26,6 +26,9 @@ class Globals {
     static final String[] floor_names = {"C Level", "Ground Floor"};  // Manually set
     static final int floor_start_index = 1; // Manually set
 
+    // Bool to tell us if we're using the image fetching for the camera view.
+    static final boolean usingCameraViewImageFetch = false;
+
     static void disconnectBeaconManager(BeaconManager mBeaconManager, boolean[] isEstimoteRangingServiceReady) {
         mBeaconManager.disconnect();
         isEstimoteRangingServiceReady[0] = false;
