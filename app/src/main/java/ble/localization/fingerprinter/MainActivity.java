@@ -328,10 +328,16 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        String message = "In this fingerprint, the following number of RSSIs were collected for each of the following beacons:\n";
+        String message = "Major ID - # of values obtained - average RSSI:\n";
 
         for (Integer key : beaconRssiValues.keySet()) {
-            message += (key + " - " + beaconRssiValues.get(key).size() + " values.\n");
+            ArrayList<Double> RSSIs = new ArrayList<>();
+            for (Integer rssi : beaconRssiValues.get(key)) {
+                RSSIs.add((double) rssi);
+            }
+            Double avg = MathFunctions.doubleRound(MathFunctions.trimmedMean(RSSIs, PERCENT_CUTOFF), DECIMAL_PLACES);
+
+            message += (key + " - " + beaconRssiValues.get(key).size() + " values - " + avg + "\n");
         }
         message += "\nWould you like to submit this fingerprint?";
 
@@ -365,6 +371,7 @@ public class MainActivity extends AppCompatActivity {
                             Map<String, Object> values = new HashMap<>();
                             values.put("major", beacon);
                             values.put("rssi", averageBeaconRSSIValues.get(beacon));
+                            values.put("number_of_times_detected", beaconRssiValues.get(beacon).size());
                             beaconInfo.add(values);
                         }
 
