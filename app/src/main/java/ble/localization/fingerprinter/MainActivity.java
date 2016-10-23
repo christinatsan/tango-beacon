@@ -24,6 +24,7 @@ import com.estimote.sdk.Beacon;
 import com.estimote.sdk.BeaconManager;
 import com.estimote.sdk.Region;
 import com.estimote.sdk.SystemRequirementsChecker;
+import com.jaredrummler.android.device.DeviceName;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 
@@ -50,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     protected static final int DECIMAL_PLACES = 2;
     private static final int timeToRecord = 15000;
     private static final String URL_ENDPOINT = "/fingerprint";
+    protected static String deviceName;
 
     // The map and camera views
     private MapView mapView;
@@ -115,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         resources = this.getResources();
+        deviceName = DeviceName.getDeviceName();
 
         ProgressDialog loading_dialog = ProgressDialog.show(MainActivity.this, "Loading map", "Please wait...", true);
         loading_dialog.setCancelable(false);
@@ -366,6 +369,7 @@ public class MainActivity extends AppCompatActivity {
                         locationInfo.put("y", mapView.thisTouchCoordinates[1]);
                         locationInfo.put("floor_num", floor_curr_index - Globals.floor_start_index);
                         locationInfo.put("floor", Globals.floor_names[floor_curr_index]);
+                        locationInfo.put("phone_model", deviceName);
 
                         for (Integer beacon : averageBeaconRSSIValues.keySet()) {
                             Map<String, Object> values = new HashMap<>();
