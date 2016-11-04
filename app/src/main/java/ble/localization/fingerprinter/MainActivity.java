@@ -28,6 +28,7 @@ import com.jaredrummler.android.device.DeviceName;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -376,6 +377,7 @@ public class MainActivity extends AppCompatActivity {
                             values.put("major", beacon);
                             values.put("rssi", averageBeaconRSSIValues.get(beacon));
                             values.put("number_of_times_detected", beaconRssiValues.get(beacon).size());
+                            values.put("raw_values", new JSONArray(beaconRssiValues.get(beacon)).toString());
                             beaconInfo.add(values);
                         }
 
