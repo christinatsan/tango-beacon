@@ -8,19 +8,37 @@ import cern.colt.list.DoubleArrayList;
 import cern.jet.stat.Descriptive;
 
 /**
- * Created by vishnunair on 7/1/16.
+ * Some general math functions.
  */
-public class MathFunctions {
+final class MathFunctions {
 
-    public static float floatRound(float d, int decimalPlace) {
+    /**
+     * Rounds a floating point to the desired decimal place.
+     * @param d The number.
+     * @param decimalPlace The desired decimal place.
+     * @return The rounded number.
+     */
+    static float floatRound(float d, int decimalPlace) {
         return (float)(Math.round(d * Math.pow(10, decimalPlace)) / Math.pow(10, decimalPlace));
     }
 
-    public static double doubleRound(double d, int decimalPlace) {
+    /**
+     * Rounds a double to the desired decimal place.
+     * @param d The number.
+     * @param decimalPlace The desired decimal place.
+     * @return The rounded number.
+     */
+    static double doubleRound(double d, int decimalPlace) {
         return Math.round(d * Math.pow(10, decimalPlace)) / Math.pow(10, decimalPlace);
     }
 
-    public static double trimmedMean(final ArrayList<Double> arr_list, final int percent) {
+    /**
+     * Calculates a trimmed mean of a list of numbers.
+     * @param arr_list The list of numbers.
+     * @param percent The persent cutoff.
+     * @return The result.
+     */
+    static double trimmedMean(final ArrayList<Double> arr_list, final int percent) {
         double[] arr = ArrayUtils.toPrimitive(arr_list.toArray(new Double[arr_list.size()]));
 
         final int n = arr.length;

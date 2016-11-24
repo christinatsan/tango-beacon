@@ -12,9 +12,9 @@ import com.estimote.sdk.Region;
 import java.util.UUID;
 
 /**
- * Created by vishnunair on 7/6/16.
+ * Contains variables used by all classes.
  */
-class Globals {
+final class Globals {
 
     static final String PHASE_CHANGE_BROADCAST_PAYLOAD_KEY = "TARGET_PHASE";
     static final String SERVER_BASE_URL = "http://192.168.0.10:8000/api";
@@ -23,7 +23,7 @@ class Globals {
     private static final String beaconRegionName = "ranged region";
     static final Region region = new Region(beaconRegionName, beaconRegionUUID, null, null);
 
-    static final String[] floor_names = {"C Level", "Ground Floor"};  // Manually set
+    static final String[] floor_names = {"C Level", "Ground Floor"};  // Manually set the floor names at this time
     static final int floor_start_index = 1; // Manually set
 
     // Bool to tell us if we're using the image fetching for the camera view.

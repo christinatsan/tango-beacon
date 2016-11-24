@@ -40,14 +40,17 @@ import cz.msebera.android.httpclient.entity.StringEntity;
 import cz.msebera.android.httpclient.message.BasicHeader;
 import cz.msebera.android.httpclient.protocol.HTTP;
 
+/**
+ * Our locator.
+ */
 public class LocatorActivity extends AppCompatActivity {
 
+    // Some general variables.
     private static final String TAG = "LocatorActivity";
     private static final int timeToRecord = 3000;
     private static final String URL_ENDPOINT = "/location";
 
     private MapView mapView;
-
     private TextView coordView;
     public static final String LOCATOR_BROADCAST_ACTION = "ble.localization.locator.LOCATE";
 
@@ -63,8 +66,8 @@ public class LocatorActivity extends AppCompatActivity {
     private IntentFilter localizationFilter = new IntentFilter(LOCATOR_BROADCAST_ACTION);
 
     // Data holders
-    private Map<Integer, ArrayList<Integer>> currentBeaconRssiValues = new HashMap<>();
-    private Map<Integer, ArrayList<Integer>> usedBeaconRssiValues;
+    private Map<Integer, ArrayList<Integer>> currentBeaconRssiValues = new HashMap<>(); // current values
+    private Map<Integer, ArrayList<Integer>> usedBeaconRssiValues; // used values for sending in localization
 
     protected enum localizationPhase {
         PHASE_ONE,
@@ -72,28 +75,46 @@ public class LocatorActivity extends AppCompatActivity {
         PHASE_THREE,
     }
 
+    // Data holders
     private Map<String, Object> requestParameter = new HashMap<>();
     private ArrayList<Object> beaconInfo = new ArrayList<>();   // major-RSSI values
     private String jsonFingerprintRequestString;
 
+    // Button-related stuff
     private Button locateButton;
     private boolean tapToLocateEnabled;
 
+    // Floor/floor-plan-related stuff
     private int floor_curr_index = Globals.floor_start_index;
     private String curr_floor = Globals.floor_names[floor_curr_index];
     private String prev_floor = curr_floor;
     private Resources resources;
 
+    /**
+     * Gets the resource ID of the floor plan we want.
+     * @param name The formatted name of the floor in question
+     * @return The resource ID.
+     * @throws Resources.NotFoundException The specified resource was not found.
+     */
     protected int getFloorPlanResourceID(String name) throws Resources.NotFoundException {
         // Map names are of the format: "Floor Name_map"
         return resources.getIdentifier(name + "_map", "drawable", this.getPackageName());
     }
 
+    /**
+     * Formats the floor name so it can be used to search for a resource.
+     * @param floor The floor name.
+     * @return The formatted name.
+     */
     protected String formatToValidResourceName(String floor) {
         // Make lowercase and remove all whitespace
         return floor.toLowerCase().replaceAll("\\s+","");
     }
 
+    /**
+     * Called when the activity is starting. Performs most initialization.
+     * @param savedInstanceState May contain the most recently saved state.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -105,6 +126,7 @@ public class LocatorActivity extends AppCompatActivity {
         loading_dialog.setCancelable(false);
         loading_dialog.setCanceledOnTouchOutside(false);
 
+        // Load the floor plan.
         mapView = (MapView)findViewById(R.id.mapView);
         int startPlanResID = getFloorPlanResourceID(formatToValidResourceName(Globals.floor_names[floor_curr_index]));
         mapView.setImage(ImageSource.resource(startPlanResID));
@@ -112,20 +134,22 @@ public class LocatorActivity extends AppCompatActivity {
 
         loading_dialog.dismiss();
 
+        // Set that the Estimote service is not ready.
         isEstimoteRangingServiceReady[0] = false;
 
+        // Find the text view that shows the coordinates.
         coordView = (TextView)findViewById(R.id.coordinateText);
 
-        this.registerReceiver(mCoordinateChangeReceiver, coordinateChangeFilter);
-        this.registerReceiver(mLocalizationReceiver, localizationFilter);
         Log.d(TAG, "Registered receivers.");
         lastRecord = System.currentTimeMillis();
 
+        // Initialize the locator button.
         locateButton = (Button)findViewById(R.id.locateButton);
         assert (locateButton != null);
         locateButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                // Switch the button between starting and stopping localization.
                 if(tapToLocateEnabled) {
                     if(!checkLocateRequirements()) return;
                     tapToLocateEnabled = false;
@@ -133,31 +157,33 @@ public class LocatorActivity extends AppCompatActivity {
                 } else {
                     locatingBeaconManager.stopRanging(Globals.region);
                     tapToLocateEnabled = true;
+                    clearMaps();
                     locateButton.setText("Localize");
                 }
             }
         });
         tapToLocateEnabled = true;
 
-        // Estimote-related code
+        // Estimote SDK-related code
         locatingBeaconManager = new BeaconManager(this);
 
         locatingBeaconManager.setRangingListener(new BeaconManager.RangingListener() {
             @Override
             public void onBeaconsDiscovered(Region region, List<Beacon> list) {
-                // Beacon discovery code goes here.
+                // Beacon discovery code during localization.
                 for(Beacon b : list) {
                     if(!currentBeaconRssiValues.containsKey(b.getMajor())) {
                         currentBeaconRssiValues.put(b.getMajor(), new ArrayList<Integer>());
                     }
                     currentBeaconRssiValues.get(b.getMajor()).add(b.getRssi());
 
+                    // Keep adding until we've surpassed the timetoRecord.
                     if (System.currentTimeMillis() >= (lastRecord + timeToRecord)) {
                         lastRecord = System.currentTimeMillis();
                         usedBeaconRssiValues = new HashMap<>(currentBeaconRssiValues);
                         currentBeaconRssiValues.clear();
 
-                        // Send intent
+                        // Send intent for the next phase of localization.
                         final Intent beginLocalizing = new Intent(LOCATOR_BROADCAST_ACTION);
                         beginLocalizing.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_ONE);
                         getApplicationContext().sendBroadcast(beginLocalizing);
@@ -176,6 +202,9 @@ public class LocatorActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Called so that the activity can start interacting with the user.
+     */
     @Override
     public void onResume() {
         super.onResume();
@@ -183,6 +212,10 @@ public class LocatorActivity extends AppCompatActivity {
         this.registerReceiver(mLocalizationReceiver, localizationFilter);
     }
 
+    /**
+     * Called when an activity is going into the background, but has not (yet) been killed.
+     * The counterpart to onResume.
+     */
     @Override
     public void onPause() {
         this.unregisterReceiver(mCoordinateChangeReceiver);
@@ -191,23 +224,32 @@ public class LocatorActivity extends AppCompatActivity {
         super.onPause();
     }
 
+    /**
+     * Performs final cleanup before an activity is destroyed.
+     */
     @Override
     public void onDestroy() {
-        try {
-            this.unregisterReceiver(this.mCoordinateChangeReceiver);
-            this.unregisterReceiver(this.mLocalizationReceiver);
-        } catch (IllegalArgumentException e) { }
         locatingBeaconManager.stopRanging(Globals.region);
         Globals.disconnectBeaconManager(locatingBeaconManager, isEstimoteRangingServiceReady);
         super.onDestroy();
     }
 
+    /**
+     * Initialize the contents of the Activity's standard options menu.
+     * @param menu The options menu in question.
+     * @return True for the menu to be displayed.
+     */
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.locator_options_menu, menu);
         return true;
     }
 
+    /**
+     * Called whenever an item in the options menu is selected.
+     * @param item The menu item that was selected.
+     * @return True to consume the menu option.
+     */
     public boolean onOptionsItemSelected(MenuItem item) {
         // respond to menu item selection
         switch (item.getItemId()) {
@@ -222,12 +264,15 @@ public class LocatorActivity extends AppCompatActivity {
         return true;
     }
 
+    // Check if we've met the requirement to localize, and start the ranging service.
     private boolean checkLocateRequirements() {
+        // Is the ranging service ready?
         if(!isEstimoteRangingServiceReady[0]) {
             Globals.showDialogWithOKButton(this, "Beacon Ranging Not Ready", "Please wait until the ranging service is ready.");
             return false;
         }
 
+        // Do we have the appropriate permissions?
         if(!SystemRequirementsChecker.checkWithDefaultDialogs(this)) {
             Globals.showDialogWithOKButton(this,
                     "Required Permissions Not Granted",
@@ -236,10 +281,14 @@ public class LocatorActivity extends AppCompatActivity {
             return false;
         }
 
+        // If we've reached this spot, start ranging.
         locatingBeaconManager.startRanging(Globals.region);
         return true;
     }
 
+    /**
+     * Process the captured values.
+     */
     private void processValues() {
         Log.d(TAG, "Processing values.");
         Log.v(TAG, "ALL Values: " + usedBeaconRssiValues.toString());
@@ -265,12 +314,15 @@ public class LocatorActivity extends AppCompatActivity {
         jsonFingerprintRequestString = new JSONObject(requestParameter).toString();
         Log.d(TAG, jsonFingerprintRequestString);
 
-        // Send intent
+        // Send intent for the next phase.
         final Intent sendAllValues = new Intent(LOCATOR_BROADCAST_ACTION);
         sendAllValues.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_TWO);
         getApplicationContext().sendBroadcast(sendAllValues);
     }
 
+    /**
+     * Send the captured values to the server, and receive the calculated values.
+     */
     private void sendValues() {
         Log.d(TAG, "Sending values.");
 
@@ -290,6 +342,7 @@ public class LocatorActivity extends AppCompatActivity {
             @Override
             public void onSuccess(int statusCode, Header[] headers, JSONObject responseBody) {
                 // Successfully got a response
+                // If we didn't get a match, return.
                 try {
                     if (responseBody.get("status").equals("no_match")) return;
                 } catch (JSONException e) {
@@ -312,7 +365,7 @@ public class LocatorActivity extends AppCompatActivity {
                     return;
                 }
 
-                // Send intent to complete process
+                // Else, send the intent to complete the localization process.
                 final Intent updateMapView = new Intent(LOCATOR_BROADCAST_ACTION);
                 updateMapView.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_THREE);
                 try {
@@ -351,14 +404,21 @@ public class LocatorActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Clear the data holders.
+     */
     private void clearMaps() {
         usedBeaconRssiValues.clear();
+        currentBeaconRssiValues.clear();
         requestParameter.clear();
         beaconInfo.clear();
         jsonFingerprintRequestString = "";
     }
 
-    // Receives notification that the selected coordinates have been changed.
+    /**
+     * Broadcast receiver - Receives the notification that the current coordinates have been
+     * changed and changes them on the text view.
+     */
     private class coordinateChangeReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -367,6 +427,9 @@ public class LocatorActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Broadcast receiver - Facilitates the localization process.
+     */
     private class localizationReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {

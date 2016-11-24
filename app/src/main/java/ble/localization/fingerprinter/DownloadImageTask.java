@@ -10,18 +10,27 @@ import com.davemorrissey.labs.subscaleview.ImageSource;
 import java.io.InputStream;
 
 /**
- * Created by vishnunair on 7/21/16.
+ * Downloads the new camera view image and sets it.
  */
-public class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
+class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
 
     private static final String TAG = "DownloadImageTask";
 
     private CameraView cView;
 
-    public DownloadImageTask(CameraView cView) {
+    /**
+     * Initializes the task.
+     * @param cView The camera view.
+     */
+    DownloadImageTask(CameraView cView) {
         this.cView = cView;
     }
 
+    /**
+     * Downloads the image in a background process.
+     * @param urls The URL of the image.
+     * @return The decoded image.
+     */
     protected Bitmap doInBackground(String... urls) {
         String urldisplay = urls[0];
         Bitmap decoded_stream = null;
@@ -35,6 +44,10 @@ public class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
         return decoded_stream;
     }
 
+    /**
+     * Sets the image in the camera view.
+     * @param result The decoded image.
+     */
     protected void onPostExecute(Bitmap result) {
         cView.setImage(ImageSource.bitmap(result));
         cView.setImagePresent(true);
