@@ -268,6 +268,10 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         // respond to menu item selection
         switch (item.getItemId()) {
+            case R.id.cmod_launch:
+                CoordinateModifierDialog cmdView = new CoordinateModifierDialog(this, mapView.thisTouchCoordinates[0], mapView.thisTouchCoordinates[1]);
+                cmdView.show();
+                break;
             case R.id.locator_launch:
                 // launch locator here
                 startActivity(new Intent(this, LocatorActivity.class));
@@ -657,8 +661,8 @@ public class MainActivity extends AppCompatActivity {
             final Bundle intentPayload = intent.getExtras();
             final float new_x = (float)(double)intentPayload.get("x");
             final float new_y = (float)(double)intentPayload.get("y");
-            mapView.lastTouchCoordinates[0] = new_x;
-            mapView.lastTouchCoordinates[1] = new_y;
+            mapView.thisTouchCoordinates[0] = new_x;
+            mapView.thisTouchCoordinates[1] = new_y;
 
             Intent change_coordinate_text = new Intent(MapView.COORDINATE_TEXT_UPDATE_BROADCAST);
             context.sendBroadcast(change_coordinate_text);

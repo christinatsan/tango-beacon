@@ -1,4 +1,6 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/cmod_launch"
+        android:title="Modify Coordinates" />
     <item android:id="@+id/locator_launch"
         android:title="Locator" />
     <item android:id="@+id/enlarge_view"
