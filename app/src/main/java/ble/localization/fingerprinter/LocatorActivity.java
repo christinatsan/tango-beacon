@@ -158,6 +158,7 @@ public class LocatorActivity extends AppCompatActivity {
                     locatingBeaconManager.stopRanging(Globals.region);
                     tapToLocateEnabled = true;
                     clearMaps();
+                    currentBeaconRssiValues.clear();
                     locateButton.setText("Localize");
                 }
             }
@@ -301,6 +302,7 @@ public class LocatorActivity extends AppCompatActivity {
             for(Integer rssi : usedBeaconRssiValues.get(key)) {
                 RSSIs.add((double)rssi);
             }
+            // TODO: Maybe don't use trimmed mean since we don't have too many readings?
             Double avg = MathFunctions.doubleRound(MathFunctions.trimmedMean(RSSIs, MainActivity.PERCENT_CUTOFF), MainActivity.DECIMAL_PLACES);
             Map<String, Object> beaconRssi = new HashMap<>();
             beaconRssi.put("major", key);
@@ -332,7 +334,7 @@ public class LocatorActivity extends AppCompatActivity {
         StringEntity json = new StringEntity(jsonFingerprintRequestString, "UTF-8");
         json.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, requestType));
 
-        client.put(LocatorActivity.this, Globals.SERVER_BASE_URL + URL_ENDPOINT, json, requestType, new JsonHttpResponseHandler() {
+        client.put(LocatorActivity.this, Globals.SERVER_BASE_API_URL + URL_ENDPOINT, json, requestType, new JsonHttpResponseHandler() {
 
             @Override
             public void onStart() {
@@ -409,7 +411,7 @@ public class LocatorActivity extends AppCompatActivity {
      */
     private void clearMaps() {
         usedBeaconRssiValues.clear();
-        currentBeaconRssiValues.clear();
+        // currentBeaconRssiValues.clear();
         requestParameter.clear();
         beaconInfo.clear();
         jsonFingerprintRequestString = "";

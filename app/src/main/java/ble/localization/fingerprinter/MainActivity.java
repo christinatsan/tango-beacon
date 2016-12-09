@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "FingerprintActivity";
     protected static final int PERCENT_CUTOFF = 15;
     protected static final int DECIMAL_PLACES = 2;
-    private static final int timeToRecord = 15000;
+    private static final int timeToRecord = 10000;
     private static final String URL_ENDPOINT = "/fingerprint";
     protected static String deviceName;
 
@@ -268,6 +268,10 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         // respond to menu item selection
         switch (item.getItemId()) {
+            case R.id.navigator_launch:
+                // launch navigator here
+                startActivity(new Intent(this, NavigatorActivity.class));
+                break;
             case R.id.cmod_launch:
                 CoordinateModifierDialog cmdView = new CoordinateModifierDialog(this, mapView.thisTouchCoordinates[0], mapView.thisTouchCoordinates[1]);
                 cmdView.show();
@@ -289,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case R.id.go_down:
                 // go down a floor
-                if(floor_curr_index - 1 < 0) {
+                if(floor_curr_index - 1 <= 0) {
                     Globals.showSnackbar(findViewById(android.R.id.content),
                             "You're on the bottommost floor!");
                     break;
@@ -439,7 +443,7 @@ public class MainActivity extends AppCompatActivity {
                         // Put in location and phone information.
                         locationInfo.put("x", mapView.thisTouchCoordinates[0]);
                         locationInfo.put("y", mapView.thisTouchCoordinates[1]);
-                        locationInfo.put("floor_num", floor_curr_index - Globals.floor_start_index);
+                        locationInfo.put("floor_num", floor_curr_index);
                         locationInfo.put("floor", Globals.floor_names[floor_curr_index]);
                         locationInfo.put("phone_model", deviceName);
 
@@ -504,7 +508,7 @@ public class MainActivity extends AppCompatActivity {
         progressDialog.setCancelable(false);
         progressDialog.show();
 
-        client.post(MainActivity.this, Globals.SERVER_BASE_URL + URL_ENDPOINT, json, requestType, new AsyncHttpResponseHandler() {
+        client.post(MainActivity.this, Globals.SERVER_BASE_API_URL + URL_ENDPOINT, json, requestType, new AsyncHttpResponseHandler() {
 
             @Override
             public void onStart() {

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#ffffff"
+    android:orientation="vertical"
+    android:weightSum="14"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context="ble.localization.fingerprinter.NavigatorActivity"
+    tools:showIn="@layout/activity_main">
+
+    <TextView
+        android:id="@+id/source_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textIsSelectable="true"
+        android:text="@string/default_source"
+        android:gravity="center" />
+    <TextView
+        android:id="@+id/destination_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textIsSelectable="true"
+        android:text="@string/default_destination"
+        android:gravity="center" />
+
+    <android.widget.ImageView
+        android:id="@+id/map"
+        android:layout_width="match_parent"
+        android:layout_height="400dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_weight="8"
+        android:contentDescription="@string/image_text"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_weight="2"
+        android:weightSum="4"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/direction_button_prev"
+            android:scaleType="fitCenter"
+            android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:src="@drawable/left_arrow_bracket"
+            android:background="?android:selectableItemBackground"
+            android:layout_weight="1"
+            android:layout_gravity="center_horizontal|center" />
+
+        <TextView
+            android:id="@+id/direction_text"
+            android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:textIsSelectable="true"
+            android:onClick="onClick"
+            android:clickable="true"
+            android:text="@string/default_direction"
+            android:gravity="center" />
+
+        <ImageButton
+            android:id="@+id/direction_button_next"
+            android:scaleType="fitCenter"
+            android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:src="@drawable/right_arrow_bracket"
+            android:background="?android:selectableItemBackground"
+            android:layout_weight="1"
+            android:layout_gravity="center_horizontal|center" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center|bottom"
+        android:layout_weight="2"
+        android:weightSum="4"
+        android:orientation="horizontal">
+        <ImageButton
+            android:id="@+id/map_button_prev"
+            android:scaleType="fitCenter"
+            android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:src="@drawable/arrow_down"
+            android:background="?android:selectableItemBackground"
+            android:layout_weight="1"
+            android:layout_gravity="center_horizontal|center" />
+        <ImageButton
+            android:id="@+id/map_button_next"
+            android:scaleType="fitCenter"
+            android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:src="@drawable/arrow_up"
+            android:background="?android:selectableItemBackground"
+            android:layout_weight="1"
+            android:layout_gravity="center_horizontal|center" />
+        <ImageButton
+            android:id="@+id/speech_button"
+            android:scaleType="fitCenter"
+            android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:src="@drawable/mic"
+            android:background="?android:selectableItemBackground"
+            android:layout_weight="1"
+            android:layout_gravity="center_horizontal|center" />
+        <ImageButton
+            android:id="@+id/scan_button"
+            android:scaleType="fitCenter"
+            android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:src="@drawable/scanqr"
+            android:background="?android:selectableItemBackground"
+            android:textAllCaps="false"
+            android:layout_weight="1"
+            android:layout_gravity="center_horizontal|center" />
+    </LinearLayout>
+</LinearLayout>

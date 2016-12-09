@@ -1,3 +1,21 @@
 <resources>
     <string name="app_name">BLE Fingerprinter</string>
+    <string name="action_reset">Stop Localizing &amp; Reset</string>
+    <string name="action_text">Please scan a QR Code</string>
+    <string name="action_scan">Scan QR Code</string>
+    <string name="action_map_next">Next Floor</string>
+    <string name="action_map_prev">Prev Floor</string>
+    <string name="image_text">Scanned QR Code</string>
+    <string name="speech_prompt">Please say your destination</string>
+    <string name="speech_not_supported">Sorry, your device does not support speech</string>
+    <string name="action_locations">Set Destination</string>
+    <string name="action_source">Set Start</string>
+    <string name="action_vibration">Enable Vibration</string>
+    <string name="action_units">Use Metric</string>
+    <string name="action_speak">Enable Speech</string>
+    <string name="default_source">Please scan a QR code</string>
+    <string name="default_destination">Destination: None</string>
+    <string name="default_floor">C Level</string>
+    <string name="default_direction">No directions currently set</string>
+    <string name="action_localize">Start Locating</string>
 </resources>
