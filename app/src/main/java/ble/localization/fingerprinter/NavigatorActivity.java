@@ -522,8 +522,11 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     Initially, all the QR code locations are marked using the color blue. However, after a match is made, a red
     color is used to denote the point that was matched.
      */
-    // TODO: Put in a parameter to prevent speaking of directions until we explicitly say so.
-    private void markMaps(){
+    private void markMaps() {
+        markMaps(false);    // the default call allows speaking of the direction
+    }
+
+    private void markMaps(boolean noSpeak){
 
         // Reset the map view (default zoom/pan) and reload the floor bitmaps.
         //floorMap.resetMatrix();
@@ -597,7 +600,9 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                 drawPath(floor, path,canvas,paint);
                 //markCurrentPath();
                 directionText.setText(listDirections.get(curDirection));
-                speakDirections(1);
+                if(!noSpeak) {
+                    speakDirections(1);
+                }
                 isMatch = false;
             }
         }
@@ -612,13 +617,14 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
 
         if(isMetric){
             unit = "meters";
-        }
-        else
+        } else {
             unit = "feet";
+        }
 
         int start_x = nodePoints.get(floor).get(path.get(0)).x;
         int start_y = nodePoints.get(floor).get(path.get(0)).y;
         int end_x,end_y;
+
         for(int index = 1; index < path.size() - 1; index++){
             int prevIdx = path.get(index - 1);
             int curIdx = path.get(index);
@@ -840,7 +846,6 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         getSupportActionBar().setTitle(floorNames[curMap]);
     }
 
-    // TODO: Why does it keep repeating the direction when a new location is received?
     // TODO: Why does it go back a direction sometimes?
     // TODO: We need a node error or something. Maybe increase the error below. Use getDistance for this.
     private void advanceInstruction() {
@@ -1088,7 +1093,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         final private String name;
 
 
-        public Vertex(String id, String name) {
+        Vertex(String id, String name) {
             this.id = id;
             this.name = name;
         }
@@ -1132,13 +1137,13 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
 
     }
 
-    public class Edge  {
+    private class Edge  {
         private final String id;
         private final Vertex source;
         private final Vertex destination;
         private final int weight;
 
-        public Edge(String id, Vertex source, Vertex destination, int weight) {
+        Edge(String id, Vertex source, Vertex destination, int weight) {
             this.id = id;
             this.source = source;
             this.destination = destination;
@@ -1148,14 +1153,14 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         public String getId() {
             return id;
         }
-        public Vertex getDestination() {
+        Vertex getDestination() {
             return destination;
         }
 
         public Vertex getSource() {
             return source;
         }
-        public int getWeight() {
+        int getWeight() {
             return weight;
         }
 
@@ -1171,19 +1176,18 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         private final List<Vertex> vertexes;
         private final List<Edge> edges;
 
-        public Graph(List<Vertex> vertexes, List<Edge> edges) {
+        Graph(List<Vertex> vertexes, List<Edge> edges) {
             this.vertexes = vertexes;
             this.edges = edges;
         }
 
-        public List<Vertex> getVertexes() {
+        List<Vertex> getVertexes() {
             return vertexes;
         }
 
-        public List<Edge> getEdges() {
+        List<Edge> getEdges() {
             return edges;
         }
-
 
 
     }
@@ -1197,13 +1201,13 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         private Map<Vertex, Vertex> predecessors;
         private Map<Vertex, Integer> distance;
 
-        public DijkstraAlgorithm(Graph graph) {
+        DijkstraAlgorithm(Graph graph) {
             // create a copy of the array so that we can operate on this array
             this.nodes = new ArrayList<Vertex>(graph.getVertexes());
             this.edges = new ArrayList<Edge>(graph.getEdges());
         }
 
-        public void execute(Vertex source) {
+        void execute(Vertex source) {
             settledNodes = new HashSet<Vertex>();
             unSettledNodes = new HashSet<Vertex>();
             distance = new HashMap<Vertex, Integer>();
@@ -1302,7 +1306,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
             return path;
         }
 
-        public ArrayList<Integer> getPathIndices(Vertex target) {
+        ArrayList<Integer> getPathIndices(Vertex target) {
             //LinkedList<Vertex> path = new LinkedList<Vertex>();
             ArrayList<Integer> path = new ArrayList<>();
             Vertex step = target;
@@ -1321,6 +1325,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         }
 
     }
+    // DO NOT MODIFY ABOVE THIS
 
     /*** Beacon-related variables ***/
     private static final int timeToRecord = 3000;
@@ -1502,7 +1507,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
             final Bundle intentPayload = intent.getExtras();
             final localizationPhase target = (localizationPhase)intentPayload.get(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY);
 
-            assert (target != null);
+            if (target == null) throw new AssertionError("The localizationPhase target should not be null!");
 
             switch (target) {
                 case PHASE_ONE:
@@ -1523,10 +1528,10 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                     // Check if we're at or near our next coordinates. If we are, change the current direction.
                     Tuple targetNode = targetNodes.get(curDirection);
                     int dist = getDistance(targetNode.getX(), targetNode.getY(), currPosition.getX(), currPosition.getY());
-                    if(dist <= 2) {
-                        advanceInstruction();  // if we're <= 1 foot away from target, advance it
+                    if( (!isMetric && dist <= 2) || (isMetric && dist <= 1) ) {
+                        advanceInstruction();  // if we're <= 2 feet/1 meter away from target, advance it
                     } else {
-                        markMaps();
+                        markMaps(true);
                     }
                     break;
 

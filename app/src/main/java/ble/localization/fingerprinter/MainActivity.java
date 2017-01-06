@@ -685,7 +685,7 @@ public class MainActivity extends AppCompatActivity {
             final Bundle intentPayload = intent.getExtras();
             final fingerprintingPhase target = (fingerprintingPhase) intentPayload.get(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY);
 
-            assert (target != null);
+            if (target == null) throw new AssertionError("The fingerprintingPhase target should not be null!");
 
             switch (target) {
                 case PHASE_ONE:
