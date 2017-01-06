@@ -101,7 +101,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     private ArrayList<ArrayList<Vertex>> nodeArray = new ArrayList<>();
     private ArrayList<ArrayList<Point>> nodePoints = new ArrayList<>();
     private ArrayList<String> listDirections = new ArrayList<>();
-    private ArrayList<Tuple> targetNodes = new ArrayList<>();
+    private ArrayList<Point> targetNodes = new ArrayList<>();
     private int lastScan = -1;
     private int curMap = 0;
     private int curDirection = 0;
@@ -122,7 +122,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     private float[] mapScaleFeet;
     private float[] mapScaleMeters;
 
-    private Tuple currPosition = new Tuple(0,0);
+    private Point currPosition = new Point(0,0);
     private Menu menu;
     private boolean localizationIsDisabled = true;
 
@@ -542,9 +542,9 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
             canvas.drawCircle(xCoords.get(i), yCoords.get(i), 20, paint);
 
             // Draw circle for curr pos.
-            if(currPosition.getX() != 0 || currPosition.getY() != 0) {
+            if(currPosition.x != 0 || currPosition.y != 0) {
                 paint.setColor(Color.MAGENTA);
-                canvas.drawCircle(currPosition.getX(), currPosition.getY(), 30, paint);
+                canvas.drawCircle(currPosition.x, currPosition.y, 30, paint);
             }
 
             // If a scan has been performed, lastScan will have the index of the matching QR code
@@ -659,14 +659,13 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                     Point nextNode = new Point(end_x, end_y);
                     listDirections.add(getAngle(nextNode, firstNode, QRCodeCoord) + " and walk " + getDistance(start_x, start_y, end_x, end_y) + " " + unit);
                     lastNode = firstNode;   // Save the current vertex (firstNode) into lastNode to be used on next iteration
-                }
-                else {  // Get angle between v->currentNode and v->next node and finds the turn
+                } else {  // Get angle between v->currentNode and v->next node and finds the turn
                     Point currentNode = new Point(start_x, start_y);
                     Point nextNode = new Point(end_x, end_y);
                     listDirections.add(getAngle(lastNode, currentNode, nextNode) + " and walk " + getDistance(start_x, start_y, end_x, end_y) + " " + unit);
                     lastNode = currentNode;   // Save the current vertex (currentNode) into lastNode to be used on next iteration
                 }
-                targetNodes.add(new Tuple(end_x, end_y));
+                targetNodes.add(new Point(end_x, end_y));
                 distances.add(getDistance(start_x, start_y, end_x, end_y));
                 start_x = end_x;
                 start_y = end_y;
@@ -697,7 +696,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         Point currentNode = new Point(start_x, start_y);
         Point nextNode = new Point(end_x, end_y);
         listDirections.add(getAngle(lastNode, currentNode, nextNode) + " and walk " + getDistance(start_x, start_y, end_x, end_y) + " " + unit);
-        targetNodes.add(new Tuple(end_x, end_y));
+        targetNodes.add(new Point(end_x, end_y));
         distances.add(getDistance(start_x, start_y, end_x, end_y));
         listDirections.add("Arrived at the " + Locations.get(tappedCode));
     }
@@ -1526,8 +1525,8 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                     // Probably what we'll do is: store coordinates into a variable, and then call markMaps, which'll draw.
                     currPosition.set((int)x, (int)y);
                     // Check if we're at or near our next coordinates. If we are, change the current direction.
-                    Tuple targetNode = targetNodes.get(curDirection);
-                    int dist = getDistance(targetNode.getX(), targetNode.getY(), currPosition.getX(), currPosition.getY());
+                    Point targetNode = targetNodes.get(curDirection);
+                    int dist = getDistance(targetNode.x, targetNode.y, currPosition.x, currPosition.y);
                     if( (!isMetric && dist <= 2) || (isMetric && dist <= 1) ) {
                         advanceInstruction();  // if we're <= 2 feet/1 meter away from target, advance it
                     } else {
