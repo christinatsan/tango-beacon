@@ -1,4 +1,4 @@
-package ble.localization.fingerprinter;
+package ble.localization.manager;
 
 import org.junit.Test;
 

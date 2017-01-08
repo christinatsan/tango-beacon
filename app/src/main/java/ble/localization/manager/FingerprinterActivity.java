@@ -1,4 +1,4 @@
-package ble.localization.fingerprinter;
+package ble.localization.manager;
 
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
@@ -47,7 +47,7 @@ import cz.msebera.android.httpclient.protocol.HTTP;
 /**
  * The Main Activity (i.e. our fingerprinter).
  */
-public class MainActivity extends AppCompatActivity {
+public class FingerprinterActivity extends AppCompatActivity {
 
     // Some general variables
     private static final String TAG = "FingerprintActivity";
@@ -133,13 +133,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_fingerprinter);
 
         // Get the device model for the fingerprint.
         resources = this.getResources();
         deviceName = DeviceName.getDeviceName();
 
-        ProgressDialog loading_dialog = ProgressDialog.show(MainActivity.this, "Loading map", "Please wait...", true);
+        ProgressDialog loading_dialog = ProgressDialog.show(FingerprinterActivity.this, "Loading map", "Please wait...", true);
         loading_dialog.setCancelable(false);
         loading_dialog.setCanceledOnTouchOutside(false);
 
@@ -166,7 +166,7 @@ public class MainActivity extends AppCompatActivity {
         fingerprintButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                final Intent beginFingerprinting = new Intent(MainActivity.BEGIN_FINGERPINTING_BROADCAST);
+                final Intent beginFingerprinting = new Intent(FingerprinterActivity.BEGIN_FINGERPINTING_BROADCAST);
                 sendBroadcast(beginFingerprinting);
             }
         });
@@ -501,14 +501,14 @@ public class MainActivity extends AppCompatActivity {
         StringEntity json = new StringEntity(jsonFingerprintRequestString, "UTF-8");
         json.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, requestType));
 
-        final ProgressDialog progressDialog = new ProgressDialog(MainActivity.this);
+        final ProgressDialog progressDialog = new ProgressDialog(FingerprinterActivity.this);
         progressDialog.setTitle("Sending values...");
         progressDialog.setMessage("Please wait.");
         progressDialog.setIndeterminate(true);
         progressDialog.setCancelable(false);
         progressDialog.show();
 
-        client.post(MainActivity.this, Globals.SERVER_BASE_API_URL + URL_ENDPOINT, json, requestType, new AsyncHttpResponseHandler() {
+        client.post(FingerprinterActivity.this, Globals.SERVER_BASE_API_URL + URL_ENDPOINT, json, requestType, new AsyncHttpResponseHandler() {
 
             @Override
             public void onStart() {
@@ -531,7 +531,7 @@ public class MainActivity extends AppCompatActivity {
                 // Request failed
                 Globals.showSnackbar(findViewById(android.R.id.content), "Fingerprinting failed.");
 
-                new AlertDialog.Builder(MainActivity.this)
+                new AlertDialog.Builder(FingerprinterActivity.this)
                         .setTitle("Sending Failed")
                         .setMessage("Sending fingerprint data failed. (Server response code: " + statusCode + ")")
                         .setCancelable(false)

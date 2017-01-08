@@ -1,4 +1,4 @@
-package ble.localization.fingerprinter;
+package ble.localization.manager;
 
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
@@ -303,7 +303,7 @@ public class LocatorActivity extends AppCompatActivity {
                 RSSIs.add((double)rssi);
             }
             // TODO: Maybe don't use trimmed mean since we don't have too many readings?
-            Double avg = MathFunctions.doubleRound(MathFunctions.trimmedMean(RSSIs, MainActivity.PERCENT_CUTOFF), MainActivity.DECIMAL_PLACES);
+            Double avg = MathFunctions.doubleRound(MathFunctions.trimmedMean(RSSIs, FingerprinterActivity.PERCENT_CUTOFF), FingerprinterActivity.DECIMAL_PLACES);
             Map<String, Object> beaconRssi = new HashMap<>();
             beaconRssi.put("major", key);
             beaconRssi.put("rssi", avg);

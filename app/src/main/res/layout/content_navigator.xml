@@ -8,8 +8,8 @@
     android:orientation="vertical"
     android:weightSum="14"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context="ble.localization.fingerprinter.NavigatorActivity"
-    tools:showIn="@layout/activity_main">
+    tools:context="ble.localization.manager.NavigatorActivity"
+    tools:showIn="@layout/activity_fingerprinter">
 
     <TextView
         android:id="@+id/source_text"

@@ -1,4 +1,4 @@
-package ble.localization.fingerprinter;
+package ble.localization.manager;
 
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
@@ -671,6 +671,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                 start_y = end_y;
             }
         }
+
         end_x = nodePoints.get(floor).get(path.get(path.size() - 1)).x;
         end_y = nodePoints.get(floor).get(path.get(path.size() - 1)).y;
         //canvas.drawLine((float)start_x,(float)start_y,(float)end_x,(float)end_y,paint);
@@ -848,8 +849,8 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     // TODO: Why does it go back a direction sometimes?
     // TODO: We need a node error or something. Maybe increase the error below. Use getDistance for this.
     private void advanceInstruction() {
-        if(curDirection == listDirections.size() - 1 || listDirections.size() == 0)
-            return;
+        if(curDirection == listDirections.size() - 1 || listDirections.size() == 0) return;
+
         directionText.setText(listDirections.get(++curDirection));
         if(curDirection == listDirections.size() - 1 && !localizationIsDisabled) {
             tryToToggleLocalization();  // turn it off since we're at our last position/instruction
@@ -865,10 +866,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         if(isSpeechOn) {
             if (listDirections.size() > 0 && select == 1)
                 tts.speak(listDirections.get(curDirection), TextToSpeech.QUEUE_FLUSH, null);
-            //else
-            //   tts.speak("No directions have been obtained. Please scan a QR code.", TextToSpeech.QUEUE_ADD, null);
-
-            if(select == 2)
+            else if(select == 2)
                 tts.speak("You have selected the " + Locations.get(tappedCode), TextToSpeech.QUEUE_FLUSH, null);
         }
     }
@@ -1390,7 +1388,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
             for(Integer rssi : usedBeaconRssiValues.get(key)) {
                 RSSIs.add((double)rssi);
             }
-            Double avg = MathFunctions.doubleRound(MathFunctions.trimmedMean(RSSIs, MainActivity.PERCENT_CUTOFF), MainActivity.DECIMAL_PLACES);
+            Double avg = MathFunctions.doubleRound(MathFunctions.trimmedMean(RSSIs, FingerprinterActivity.PERCENT_CUTOFF), FingerprinterActivity.DECIMAL_PLACES);
             Map<String, Object> beaconRssi = new HashMap<>();
             beaconRssi.put("major", key);
             beaconRssi.put("rssi", avg);

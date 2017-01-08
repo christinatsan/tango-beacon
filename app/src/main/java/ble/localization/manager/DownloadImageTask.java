@@ -1,4 +1,4 @@
-package ble.localization.fingerprinter;
+package ble.localization.manager;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;

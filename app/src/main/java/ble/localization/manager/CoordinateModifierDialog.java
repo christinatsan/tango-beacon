@@ -1,4 +1,4 @@
-package ble.localization.fingerprinter;
+package ble.localization.manager;
 
 import android.app.Dialog;
 import android.content.Context;
@@ -8,7 +8,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import static ble.localization.fingerprinter.CameraView.SEND_COORD_TO_MAP_BROADCAST;
+import static ble.localization.manager.CameraView.SEND_COORD_TO_MAP_BROADCAST;
 
 public class CoordinateModifierDialog extends Dialog {
 

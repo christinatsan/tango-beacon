@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">BLE Fingerprinter</string>
+    <string name="app_name">BLE Localization Manager</string>
     <string name="action_reset">Stop Localizing &amp; Reset</string>
     <string name="action_text">Please scan a QR Code</string>
     <string name="action_scan">Scan QR Code</string>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="ble.localization.fingerprinter">
+    package="ble.localization.manager">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE"/>
@@ -13,8 +13,9 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
+            android:name="ble.localization.manager.FingerprinterActivity"
             android:launchMode = "singleInstance"
+            android:label="BLE Fingerprinter"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -23,12 +24,12 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".LocatorActivity"
+            android:name="ble.localization.manager.LocatorActivity"
             android:launchMode = "singleInstance"
             android:label="BLE Locator"
             android:screenOrientation="portrait" />
         <activity
-            android:name=".NavigatorActivity"
+            android:name="ble.localization.manager.NavigatorActivity"
             android:launchMode = "singleInstance"
             android:label="BLE Navigator"
             android:screenOrientation="portrait"

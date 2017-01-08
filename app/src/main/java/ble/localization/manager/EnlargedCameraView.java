@@ -1,4 +1,4 @@
-package ble.localization.fingerprinter;
+package ble.localization.manager;
 
 import android.app.Dialog;
 import android.content.Context;
@@ -40,7 +40,7 @@ public class EnlargedCameraView extends Dialog {
             public void onClick(View v) {
                 dismiss();
                 // Send intent
-                final Intent beginFingerprinting = new Intent(MainActivity.BEGIN_FINGERPINTING_BROADCAST);
+                final Intent beginFingerprinting = new Intent(FingerprinterActivity.BEGIN_FINGERPINTING_BROADCAST);
                 context.sendBroadcast(beginFingerprinting);
             }
         });
