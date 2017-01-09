@@ -3,7 +3,7 @@
     package="ble.localization.manager">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
@@ -13,9 +13,25 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name="ble.localization.manager.FingerprinterActivity"
-            android:launchMode = "singleInstance"
+            android:name=".FingerprinterActivity"
             android:label="BLE Fingerprinter"
+            android:launchMode="singleInstance"
+            android:screenOrientation="portrait">
+        </activity>
+        <activity
+            android:name=".LocatorActivity"
+            android:label="BLE Locator"
+            android:launchMode="singleInstance"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".NavigatorActivity"
+            android:label="BLE Navigator"
+            android:launchMode="singleInstance"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".LauncherActivity"
+            android:launchMode="singleInstance"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -23,17 +39,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name="ble.localization.manager.LocatorActivity"
-            android:launchMode = "singleInstance"
-            android:label="BLE Locator"
-            android:screenOrientation="portrait" />
-        <activity
-            android:name="ble.localization.manager.NavigatorActivity"
-            android:launchMode = "singleInstance"
-            android:label="BLE Navigator"
-            android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.NoActionBar" />
     </application>
 
 </manifest>
