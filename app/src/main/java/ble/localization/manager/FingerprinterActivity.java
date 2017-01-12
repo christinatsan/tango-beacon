@@ -63,9 +63,6 @@ public class FingerprinterActivity extends AppCompatActivity {
     private MapView mapView;
     private CameraView cameraView;
 
-    private Switch ttToggle;
-    private boolean areTrainingFingerprints = true;
-
     // Beacon-related variables
     private BeaconManager fingerprintingBeaconManager;
     private static boolean[] isEstimoteRangingServiceReady = new boolean[1];
@@ -164,17 +161,6 @@ public class FingerprinterActivity extends AppCompatActivity {
 
         // Find the text view that shows the coordinates.
         coordView = (TextView) findViewById(R.id.coordinateText);
-
-        ttToggle = (Switch) findViewById(R.id.trainTestToggle);
-        ttToggle.setChecked(areTrainingFingerprints);
-
-        // Set train/test toggle
-        ttToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                areTrainingFingerprints = isChecked;
-            }
-        });
 
         // Find and set the fingerprint button.
         final Button fingerprintButton = (Button) findViewById(R.id.fingerprintButton);
@@ -479,12 +465,6 @@ public class FingerprinterActivity extends AppCompatActivity {
                         requestParameter.put("timestamp", System.currentTimeMillis());
                         requestParameter.put("beacons", beaconInfo);
                         requestParameter.put("information", locationInfo);
-
-                        if(areTrainingFingerprints) {
-                            requestParameter.put("ml_type", "TRN");
-                        } else {
-                            requestParameter.put("ml_type", "TST");
-                        }
 
                         // Convert to a string.
                         jsonFingerprintRequestString = (new JSONObject(requestParameter)).toString();
