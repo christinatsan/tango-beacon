@@ -15,11 +15,13 @@ public class LauncherActivity extends AppCompatActivity {
         setContentView(R.layout.activity_launcher);
 
         final Button fp_go = (Button) findViewById(R.id.f_go);
+        final Button fpr_go = (Button) findViewById(R.id.fr_go);
         final Button l_go = (Button) findViewById(R.id.l_go);
         final Button n_go = (Button) findViewById(R.id.n_go);
         final Button ap_go = (Button) findViewById(R.id.ap_go);
 
         assert (fp_go != null);
+        assert (fpr_go != null);
         assert (l_go != null);
         assert (n_go != null);
         assert (ap_go != null);
@@ -28,6 +30,13 @@ public class LauncherActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(v.getContext(), FingerprinterActivity.class));
+            }
+        });
+
+        fpr_go.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(v.getContext(), RawFingerprinterActivity.class));
             }
         });
 

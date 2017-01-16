@@ -47,12 +47,10 @@ import cz.msebera.android.httpclient.protocol.HTTP;
 /**
  * The Main Activity (i.e. our fingerprinter).
  */
-public class FingerprinterActivity extends AppCompatActivity {
+public class RawFingerprinterActivity extends AppCompatActivity {
 
     // Some general variables
-    private static final String TAG = "FingerprintActivity";
-    protected static final int PERCENT_CUTOFF = 15;
-    protected static final int DECIMAL_PLACES = 2;
+    private static final String TAG = "RawFingerprintActivity";
     private static final int timeToRecord = 10000;
     private static final String URL_ENDPOINT = "/fingerprint";
     protected static String deviceName;
@@ -85,6 +83,7 @@ public class FingerprinterActivity extends AppCompatActivity {
     private TextView coordView;
     public static final String FINGERPRINT_BROADCAST_ACTION = "ble.localization.fingerprinter.FINGERPRINT";
     public static final String BEGIN_FINGERPINTING_BROADCAST = "ble.localization.fingerprinter.BEGIN_FP";
+    private static ProgressDialog postProgressDialog;
 
     protected enum fingerprintingPhase {
         PHASE_ONE,
@@ -94,13 +93,9 @@ public class FingerprinterActivity extends AppCompatActivity {
     }
 
     // Data holders for our Fingerprint
-    private LinkedHashMap<Integer, ArrayList<Integer>> beaconRssiValues = new LinkedHashMap<>();
-    private LinkedHashMap<Integer, Double> averageBeaconRSSIValues = new LinkedHashMap<>();
-
-    private LinkedHashMap<String, Object> requestParameter = new LinkedHashMap<>();
-    private ArrayList<Object> beaconInfo = new ArrayList<>();   // major-RSSI values
-    private LinkedHashMap<String, Object> locationInfo = new LinkedHashMap<>();
-    private String jsonFingerprintRequestString;
+    static int FPS_SENT = 0;
+    private ArrayList<LinkedHashMap<Integer, Integer>> listOfMajorRawValues = new ArrayList<>();
+    private ArrayList<String> listOfRequestStrings = new ArrayList<>();
 
     private int floor_curr_index = Globals.floor_start_index;
     private Resources resources;    // Required to get our floor plan
@@ -133,13 +128,13 @@ public class FingerprinterActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_fingerprinter);
+        setContentView(R.layout.activity_rawfingerprinter);
 
         // Get the device model for the fingerprint.
         resources = this.getResources();
         deviceName = DeviceName.getDeviceName();
 
-        ProgressDialog loading_dialog = ProgressDialog.show(FingerprinterActivity.this, "Loading map", "Please wait...", true);
+        ProgressDialog loading_dialog = ProgressDialog.show(RawFingerprinterActivity.this, "Loading map", "Please wait...", true);
         loading_dialog.setCancelable(false);
         loading_dialog.setCanceledOnTouchOutside(false);
 
@@ -154,6 +149,8 @@ public class FingerprinterActivity extends AppCompatActivity {
 
         loading_dialog.dismiss();
 
+        postProgressDialog = new ProgressDialog(RawFingerprinterActivity.this);
+
         // Set that the Estimote service is not ready.
         isEstimoteRangingServiceReady[0] = false;
 
@@ -166,7 +163,7 @@ public class FingerprinterActivity extends AppCompatActivity {
         fingerprintButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                final Intent beginFingerprinting = new Intent(FingerprinterActivity.BEGIN_FINGERPINTING_BROADCAST);
+                final Intent beginFingerprinting = new Intent(RawFingerprinterActivity.BEGIN_FINGERPINTING_BROADCAST);
                 sendBroadcast(beginFingerprinting);
             }
         });
@@ -188,11 +185,14 @@ public class FingerprinterActivity extends AppCompatActivity {
             @Override
             public void onBeaconsDiscovered(Region region, List<Beacon> list) {
                 // Beacon discovery code during fingerprinting.
+                LinkedHashMap<Integer, Integer> majorRawValues = new LinkedHashMap<>();
+
                 for (Beacon b : list) {
-                    if (!beaconRssiValues.containsKey(b.getMajor())) {
-                        beaconRssiValues.put(b.getMajor(), new ArrayList<Integer>());
-                    }
-                    beaconRssiValues.get(b.getMajor()).add(b.getRssi());
+                    majorRawValues.put(b.getMajor(), b.getRssi());
+                }
+
+                if(majorRawValues.keySet().size() != 0) {
+                    listOfMajorRawValues.add(majorRawValues);
                 }
             }
         });
@@ -388,28 +388,17 @@ public class FingerprinterActivity extends AppCompatActivity {
      */
     private void processValues() {
         Log.d(TAG, "Processing values.");
-        Log.v(TAG, "ALL Values: " + beaconRssiValues.toString());
+        Log.v(TAG, "ALL Values: " + listOfMajorRawValues.toString());
 
         // We might not have found any beacons. Thus, return here.
-        if (beaconRssiValues.keySet().size() == 0) {
+        if (listOfMajorRawValues.size() == 0) {
             Globals.showDialogWithOKButton(this, "No Beacons Detected",
                     "Make sure you are in the range of beacons and that they are working.");
             return;
         }
 
-        String message = "Major ID - # of values obtained - average RSSI:\n";
-
-        // Process the values for the dialog.
-        for (Integer key : beaconRssiValues.keySet()) {
-            ArrayList<Double> RSSIs = new ArrayList<>();
-            for (Integer rssi : beaconRssiValues.get(key)) {
-                RSSIs.add((double) rssi);
-            }
-            Double avg = MathFunctions.doubleRound(MathFunctions.trimmedMean(RSSIs, PERCENT_CUTOFF), DECIMAL_PLACES);
-
-            message += (key + " - " + beaconRssiValues.get(key).size() + " values - " + avg + "\n");
-        }
-        message += "\nWould you like to submit this fingerprint?";
+        String message = listOfMajorRawValues.size() + " sets of readings were obtained.\n";
+        message += "\nWould you like to submit these fingerprints?";
 
         // Confirm using an Alert Dialog.
         new AlertDialog.Builder(this)
@@ -420,47 +409,45 @@ public class FingerprinterActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
 
-                        // Process some more.
-                        for (Integer key : beaconRssiValues.keySet()) {
-                            ArrayList<Double> RSSIs = new ArrayList<>();
-                            for (Integer rssi : beaconRssiValues.get(key)) {
-                                RSSIs.add((double) rssi);
+                        for(LinkedHashMap<Integer, Integer> s : listOfMajorRawValues) {
+                            // Process some more.
+                            // Put in location and phone information.
+                            LinkedHashMap<String, Object> requestParameter = new LinkedHashMap<>();
+                            ArrayList<Object> beaconInfo = new ArrayList<>();
+                            LinkedHashMap<String, Object> locationInfo = new LinkedHashMap<>();
+
+                            locationInfo.put("x", mapView.thisTouchCoordinates[0]);
+                            locationInfo.put("y", mapView.thisTouchCoordinates[1]);
+                            locationInfo.put("floor_num", floor_curr_index);
+                            locationInfo.put("floor", Globals.floor_names[floor_curr_index]);
+                            locationInfo.put("phone_model", deviceName);
+
+                            // Put in information for each beacon detected.
+                            for (Integer beacon : s.keySet()) {
+                                Map<String, Object> values = new HashMap<>();
+                                values.put("major", beacon);
+                                values.put("rssi", s.get(beacon));
+                                values.put("number_of_times_detected", 1); // only detected one time
+                                ArrayList<Integer> temp = new ArrayList<>();
+                                temp.add(s.get(beacon));
+                                values.put("raw_values", new JSONArray(temp).toString());
+                                beaconInfo.add(values);
                             }
-                            Double avg = MathFunctions.doubleRound(MathFunctions.trimmedMean(RSSIs, PERCENT_CUTOFF), DECIMAL_PLACES);
-                            averageBeaconRSSIValues.put(key, avg);
+
+                            // Put in fingerprint info.
+                            requestParameter.put("type", "fingerprint");
+                            requestParameter.put("f_id", null);
+                            requestParameter.put("timestamp", System.currentTimeMillis());
+                            requestParameter.put("beacons", beaconInfo);
+                            requestParameter.put("information", locationInfo);
+
+                            // Convert to a string.
+                            String jsonFingerprintRequestString = (new JSONObject(requestParameter)).toString();
+                            listOfRequestStrings.add(jsonFingerprintRequestString);
+
+                            Log.v(TAG, "Request Map: " + requestParameter.toString());
+                            Log.v(TAG, "Request JSON: " + jsonFingerprintRequestString);
                         }
-
-                        Log.v(TAG, "AVERAGED Values: " + averageBeaconRSSIValues.toString());
-
-                        // Put in location and phone information.
-                        locationInfo.put("x", mapView.thisTouchCoordinates[0]);
-                        locationInfo.put("y", mapView.thisTouchCoordinates[1]);
-                        locationInfo.put("floor_num", floor_curr_index);
-                        locationInfo.put("floor", Globals.floor_names[floor_curr_index]);
-                        locationInfo.put("phone_model", deviceName);
-
-                        // Put in information for each beacon detected.
-                        for (Integer beacon : averageBeaconRSSIValues.keySet()) {
-                            Map<String, Object> values = new HashMap<>();
-                            values.put("major", beacon);
-                            values.put("rssi", averageBeaconRSSIValues.get(beacon));
-                            values.put("number_of_times_detected", beaconRssiValues.get(beacon).size());
-                            values.put("raw_values", new JSONArray(beaconRssiValues.get(beacon)).toString());
-                            beaconInfo.add(values);
-                        }
-
-                        // Put in fingerprint info.
-                        requestParameter.put("type", "fingerprint");
-                        requestParameter.put("f_id", null);
-                        requestParameter.put("timestamp", System.currentTimeMillis());
-                        requestParameter.put("beacons", beaconInfo);
-                        requestParameter.put("information", locationInfo);
-
-                        // Convert to a string.
-                        jsonFingerprintRequestString = (new JSONObject(requestParameter)).toString();
-
-                        Log.v(TAG, "Request Map: " + requestParameter.toString());
-                        Log.v(TAG, "Request JSON: " + jsonFingerprintRequestString);
 
                         // Send the intent for the next phase.
                         final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
@@ -489,33 +476,45 @@ public class FingerprinterActivity extends AppCompatActivity {
 
         final String requestType = "application/json";
 
+        postProgressDialog.setTitle("Sending values...");
+        postProgressDialog.setMessage("Please wait. Sent " + FPS_SENT + "/" + listOfMajorRawValues.size() + " fingerprints.");
+        postProgressDialog.setIndeterminate(true);
+        postProgressDialog.setCancelable(false);
+        postProgressDialog.show();
+
+        if(FPS_SENT >= listOfRequestStrings.size()) {
+            postProgressDialog.dismiss();
+
+            // Send intent to complete process
+            final Intent notifyBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
+            notifyBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.SHOW_SUCCESS_MESSAGE);
+            sendBroadcast(notifyBroadcast);
+            // Clear maps to prepare for next fingerprint
+            clearMaps();
+            return;
+        }
+
         AsyncHttpClient client = new AsyncHttpClient();
-        StringEntity json = new StringEntity(jsonFingerprintRequestString, "UTF-8");
+        String request = listOfRequestStrings.get(FPS_SENT);
+        StringEntity json = new StringEntity(request, "UTF-8");
         json.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, requestType));
-
-        final ProgressDialog progressDialog = new ProgressDialog(FingerprinterActivity.this);
-        progressDialog.setTitle("Sending values...");
-        progressDialog.setMessage("Please wait.");
-        progressDialog.setIndeterminate(true);
-        progressDialog.setCancelable(false);
-        progressDialog.show();
-
-        client.post(FingerprinterActivity.this, Globals.SERVER_BASE_API_URL + URL_ENDPOINT, json, requestType, new AsyncHttpResponseHandler() {
+        client.post(RawFingerprinterActivity.this, Globals.SERVER_BASE_API_URL + URL_ENDPOINT, json, requestType, new AsyncHttpResponseHandler() {
 
             @Override
             public void onStart() {
                 // Initiated the request
+                postProgressDialog.setMessage("Please wait. Sent " + FPS_SENT + "/" + listOfRequestStrings.size() + " fingerprints.");
             }
 
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
                 // Successfully got a response
-                // Send intent to complete process
-                final Intent notifyBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
-                notifyBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.SHOW_SUCCESS_MESSAGE);
-                sendBroadcast(notifyBroadcast);
-                // Clear maps to prepare for next fingerprint
-                clearMaps();
+                FPS_SENT++;
+
+                // Send intent
+                final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
+                finalPhaseBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_THREE);
+                sendBroadcast(finalPhaseBroadcast);
             }
 
             @Override
@@ -523,21 +522,39 @@ public class FingerprinterActivity extends AppCompatActivity {
                 // Request failed
                 Globals.showSnackbar(findViewById(android.R.id.content), "Fingerprinting failed.");
 
-                new AlertDialog.Builder(FingerprinterActivity.this)
-                        .setTitle("Sending Failed")
+                new AlertDialog.Builder(RawFingerprinterActivity.this)
+                        .setTitle("Sending Failed for #" + (FPS_SENT + 1))
                         .setMessage("Sending fingerprint data failed. (Server response code: " + statusCode + ")")
                         .setCancelable(false)
-                        .setNegativeButton("End", new DialogInterface.OnClickListener() {
+                        .setNegativeButton("Skip One", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 dialog.dismiss();
-                                clearMaps();
+                                FPS_SENT++;
+
+                                // Send intent
+                                final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
+                                finalPhaseBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_THREE);
+                                sendBroadcast(finalPhaseBroadcast);
                             }
                         })
                         .setPositiveButton("Retry", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 dialog.dismiss();
+
+                                // Send intent
+                                final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
+                                finalPhaseBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_THREE);
+                                sendBroadcast(finalPhaseBroadcast);
+                            }
+                        })
+                        .setNeutralButton("Skip All", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                                FPS_SENT = listOfRequestStrings.size();
+
                                 // Send intent
                                 final Intent finalPhaseBroadcast = new Intent(FINGERPRINT_BROADCAST_ACTION);
                                 finalPhaseBroadcast.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, fingerprintingPhase.PHASE_THREE);
@@ -545,27 +562,23 @@ public class FingerprinterActivity extends AppCompatActivity {
                             }
                         })
                         .show();
-
-
             }
 
             @Override
             public void onRetry(int retryNo) {
                 // Request was retried
-                progressDialog.setTitle("Sending values (Attempt #" + retryNo + ")");
+                postProgressDialog.setTitle("Sending values (Att. #" + retryNo + ")");
             }
 
             @Override
             public void onProgress(long bytesWritten, long totalSize) {
                 // Progress notification
-                progressDialog.setMessage("Please wait. " + bytesWritten + " of " + totalSize + " sent.");
+                // postProgressDialog.setMessage("Please wait. " + bytesWritten + " of " + totalSize + " sent.");
             }
 
             @Override
             public void onFinish() {
                 // Completed the request (either success or failure)
-                progressDialog.dismiss();
-
             }
         });
     }
@@ -587,12 +600,9 @@ public class FingerprinterActivity extends AppCompatActivity {
      * Clear the data holders.
      */
     private void clearMaps() {
-        beaconRssiValues.clear();
-        averageBeaconRSSIValues.clear();
-        requestParameter.clear();
-        beaconInfo.clear();
-        locationInfo.clear();
-        jsonFingerprintRequestString = "";
+        listOfMajorRawValues.clear();
+        listOfRequestStrings.clear();
+        FPS_SENT = 0;
     }
 
     /**

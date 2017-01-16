@@ -11,9 +11,16 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
+        android:largeHeap="true"
         android:theme="@style/AppTheme">
         <activity
             android:name=".FingerprinterActivity"
+            android:label="BLE Fingerprinter"
+            android:launchMode="singleInstance"
+            android:screenOrientation="portrait">
+        </activity>
+        <activity
+            android:name=".RawFingerprinterActivity"
             android:label="BLE Fingerprinter"
             android:launchMode="singleInstance"
             android:screenOrientation="portrait">

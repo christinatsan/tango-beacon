@@ -12,7 +12,7 @@
 
 
     <Button
-        android:text="Fingerprinter"
+        android:text="Fingerprinter (Classic)"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/f_go"
@@ -21,11 +21,20 @@
         android:layout_alignParentEnd="true" />
 
     <Button
+        android:text="Fingerprinter (Raw)"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/fr_go"
+        android:layout_below="@+id/f_go"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true" />
+
+    <Button
         android:text="Locator"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/l_go"
-        android:layout_below="@+id/f_go"
+        android:layout_below="@+id/fr_go"
         android:layout_alignParentStart="true"
         android:layout_alignParentEnd="true" />
 
