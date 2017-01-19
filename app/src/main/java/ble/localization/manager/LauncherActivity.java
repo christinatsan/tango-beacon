@@ -5,7 +5,10 @@ import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Spinner;
 
 public class LauncherActivity extends AppCompatActivity {
 
@@ -19,6 +22,8 @@ public class LauncherActivity extends AppCompatActivity {
         final Button l_go = (Button) findViewById(R.id.l_go);
         final Button n_go = (Button) findViewById(R.id.n_go);
         final Button ap_go = (Button) findViewById(R.id.ap_go);
+
+        final Spinner url_selector = (Spinner) findViewById(R.id.url_selector);
 
         assert (fp_go != null);
         assert (fpr_go != null);
@@ -62,5 +67,22 @@ public class LauncherActivity extends AppCompatActivity {
                 startActivity(launchBrowser);
             }
         });
+
+        ArrayAdapter<String> url_adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, Globals.ALL_URLS);
+        url_selector.setAdapter(url_adapter);
+        url_selector.setSelection(Globals.DEFAULT_URL);
+        url_selector.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Globals.SERVER_BASE_URL = Globals.ALL_URLS[position];
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
+
     }
 }
