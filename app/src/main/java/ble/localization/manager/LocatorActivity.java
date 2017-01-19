@@ -90,6 +90,14 @@ public class LocatorActivity extends AppCompatActivity {
     private String prev_floor = curr_floor;
     private Resources resources;
 
+    private float prev_x = MapView.defaultCoord;
+    private float prev_y = MapView.defaultCoord;
+
+    private float prev2_x = MapView.defaultCoord;
+    private float prev2_y = MapView.defaultCoord;
+
+    private static ProgressDialog waitingForLocationDialog;
+
     /**
      * Gets the resource ID of the floor plan we want.
      * @param name The formatted name of the floor in question
@@ -158,7 +166,7 @@ public class LocatorActivity extends AppCompatActivity {
                     locatingBeaconManager.stopRanging(Globals.region);
                     tapToLocateEnabled = true;
                     clearMaps();
-                    currentBeaconRssiValues.clear();
+                    clearInstantaneousData();
                     locateButton.setText("Localize");
                 }
             }
@@ -201,6 +209,13 @@ public class LocatorActivity extends AppCompatActivity {
                 Log.d(TAG, "Connected to ranging service.");
             }
         });
+
+        waitingForLocationDialog = new ProgressDialog(LocatorActivity.this);
+        waitingForLocationDialog.setTitle("Waiting for Location");
+        waitingForLocationDialog.setMessage("Please wait.");
+        waitingForLocationDialog.setIndeterminate(true);
+        waitingForLocationDialog.setCancelable(false);
+        waitingForLocationDialog.setCanceledOnTouchOutside(false);
     }
 
     /**
@@ -312,6 +327,14 @@ public class LocatorActivity extends AppCompatActivity {
 
         requestParameter.put("type", "location_info");
         requestParameter.put("measured_data", beaconInfo);
+        ArrayList<Float> tmp = new ArrayList<>();
+        tmp.add(0, prev_x);
+        tmp.add(1, prev_y);
+        requestParameter.put("previous_position", tmp);
+        ArrayList<Float> tmp2 = new ArrayList<>();
+        tmp2.add(0, prev2_x);
+        tmp2.add(1, prev2_y);
+        requestParameter.put("previous_position2", tmp2);
 
         jsonFingerprintRequestString = new JSONObject(requestParameter).toString();
         Log.d(TAG, jsonFingerprintRequestString);
@@ -371,13 +394,24 @@ public class LocatorActivity extends AppCompatActivity {
                 final Intent updateMapView = new Intent(LOCATOR_BROADCAST_ACTION);
                 updateMapView.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_THREE);
                 try {
+                    prev2_x = prev_x;
+                    prev2_y = prev_y;
+
+                    prev_x = mapView.thisTouchCoordinates[0];
+                    prev_y = mapView.thisTouchCoordinates[1];
+
                     mapView.thisTouchCoordinates[0] = (float)(double)coordinates.get(0);
                     mapView.thisTouchCoordinates[1] = (float)(double)coordinates.get(1);
                 } catch (JSONException e) {
                     Log.e(TAG, "Unexpected JSON Exception.", e);
                     return;
                 }
-                getApplicationContext().sendBroadcast(updateMapView);
+                if(prev2_x != MapView.defaultCoord && prev_x != MapView.defaultCoord) {
+                    waitingForLocationDialog.dismiss();
+                    getApplicationContext().sendBroadcast(updateMapView);
+                } else {
+                    waitingForLocationDialog.show();
+                }
             }
 
             @Override
@@ -411,10 +445,17 @@ public class LocatorActivity extends AppCompatActivity {
      */
     private void clearMaps() {
         usedBeaconRssiValues.clear();
-        // currentBeaconRssiValues.clear();
         requestParameter.clear();
         beaconInfo.clear();
         jsonFingerprintRequestString = "";
+    }
+
+    /**
+     * Clear the instantaneous data holders not cleared in clearMaps.
+     */
+    private void clearInstantaneousData() {
+        currentBeaconRssiValues.clear();
+        prev_x = prev_y = prev2_x = prev2_y = MapView.defaultCoord;
     }
 
     /**

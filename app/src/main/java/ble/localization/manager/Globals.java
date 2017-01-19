@@ -18,7 +18,7 @@ final class Globals {
 
     static final String PHASE_CHANGE_BROADCAST_PAYLOAD_KEY = "TARGET_PHASE";
 
-    static String[] ALL_URLS = {"http://192.168.0.10:8000", "http://argon.olmschenk.com", "http://ble-server.192.168.0.10.nip.io"};
+    static String[] ALL_URLS = {"http://192.168.0.10:8000", "http://argon.olmschenk.com", "http://ble-server.192.168.0.13.nip.io"};
     static final int DEFAULT_URL = 0;
     static String SERVER_BASE_URL = ALL_URLS[DEFAULT_URL];
     static final String SERVER_BASE_API_URL = SERVER_BASE_URL + "/api";

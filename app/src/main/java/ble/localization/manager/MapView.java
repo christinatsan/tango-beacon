@@ -27,7 +27,7 @@ public class MapView extends SubsamplingScaleImageView implements View.OnTouchLi
     public static final String COORDINATE_TEXT_UPDATE_BROADCAST = "ble.localization.fingerprinter.COORDINATES_CHANGED";
     public static final String PROVIDE_C_AND_N_VALUES = "ble.localization.fingerprinter.SEND_C_AND_N";
     public static final String SELECT_NEXT_COORDINATE_REQUEST = "ble.localization.fingerprinter.REQUEST_NEXT_COORD_SELECTION";
-    private static final int defaultCoord = -1;
+    static final int defaultCoord = -1;
     private static final int actionToBeHandled = MotionEvent.ACTION_UP;
 
     protected Context context;  // The context of this map view.
