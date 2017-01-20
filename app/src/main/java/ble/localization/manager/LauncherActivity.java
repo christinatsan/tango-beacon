@@ -23,7 +23,7 @@ public class LauncherActivity extends AppCompatActivity {
         final Button n_go = (Button) findViewById(R.id.n_go);
         final Button ap_go = (Button) findViewById(R.id.ap_go);
 
-        final Spinner url_selector = (Spinner) findViewById(R.id.url_selector);
+        // final Spinner url_selector = (Spinner) findViewById(R.id.url_selector);
 
         assert (fp_go != null);
         assert (fpr_go != null);
@@ -68,20 +68,20 @@ public class LauncherActivity extends AppCompatActivity {
             }
         });
 
-        ArrayAdapter<String> url_adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, Globals.ALL_URLS);
-        url_selector.setAdapter(url_adapter);
-        url_selector.setSelection(Globals.DEFAULT_URL);
-        url_selector.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                Globals.SERVER_BASE_URL = Globals.ALL_URLS[position];
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-
-            }
-        });
+//        ArrayAdapter<String> url_adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, Globals.ALL_URLS);
+//        url_selector.setAdapter(url_adapter);
+//        url_selector.setSelection(Globals.DEFAULT_URL);
+//        url_selector.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+//            @Override
+//            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+//                Globals.SERVER_BASE_URL = Globals.ALL_URLS[position];
+//            }
+//
+//            @Override
+//            public void onNothingSelected(AdapterView<?> parent) {
+//
+//            }
+//        });
 
 
     }

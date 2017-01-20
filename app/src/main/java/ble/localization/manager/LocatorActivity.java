@@ -161,6 +161,7 @@ public class LocatorActivity extends AppCompatActivity {
                 if(tapToLocateEnabled) {
                     if(!checkLocateRequirements()) return;
                     tapToLocateEnabled = false;
+                    prev_x = prev_y = prev2_x = prev2_y = MapView.defaultCoord;
                     locateButton.setText("Stop Localization");
                 } else {
                     locatingBeaconManager.stopRanging(Globals.region);
@@ -357,6 +358,7 @@ public class LocatorActivity extends AppCompatActivity {
         StringEntity json = new StringEntity(jsonFingerprintRequestString, "UTF-8");
         json.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, requestType));
 
+        // Log.d(TAG, Globals.SERVER_BASE_API_URL + URL_ENDPOINT);
         client.put(LocatorActivity.this, Globals.SERVER_BASE_API_URL + URL_ENDPOINT, json, requestType, new JsonHttpResponseHandler() {
 
             @Override
@@ -455,7 +457,6 @@ public class LocatorActivity extends AppCompatActivity {
      */
     private void clearInstantaneousData() {
         currentBeaconRssiValues.clear();
-        prev_x = prev_y = prev2_x = prev2_y = MapView.defaultCoord;
     }
 
     /**
