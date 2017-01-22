@@ -1,6 +1,7 @@
 package ble.localization.manager;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -123,8 +124,18 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     private float[] mapScaleMeters;
 
     private Point currPosition = new Point(0,0);
+    private float currPosition_floatX = 0.0f;
+    private float currPosition_floatY = 0.0f;
     private Menu menu;
     private boolean localizationIsDisabled = true;
+
+    private float prev_x = MapView.defaultCoord;
+    private float prev_y = MapView.defaultCoord;
+
+    private float prev2_x = MapView.defaultCoord;
+    private float prev2_y = MapView.defaultCoord;
+
+    private static ProgressDialog waitingForLocationDialog;
 
     /*
     onCreate - This function is called at the program start. Some of our global variables and our UI elements are initialized here.
@@ -295,6 +306,13 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                 Log.d(TAG, "Connected to ranging service.");
             }
         });
+
+        waitingForLocationDialog = new ProgressDialog(NavigatorActivity.this);
+        waitingForLocationDialog.setTitle("Waiting for Location");
+        waitingForLocationDialog.setMessage("Please wait.");
+        waitingForLocationDialog.setIndeterminate(true);
+        waitingForLocationDialog.setCancelable(false);
+        waitingForLocationDialog.setCanceledOnTouchOutside(false);
     }
 
     /**
@@ -357,6 +375,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         currPosition.set(0,0);
         clearLocatorMaps();
         currentBeaconRssiValues.clear();
+        prev_x = prev_y = prev2_x = prev2_y = MapView.defaultCoord;
         // TODO: Check if there's a crash if we're not ranging.
         if(!localizationIsDisabled) {
             tryToToggleLocalization();
@@ -1040,6 +1059,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
             localizationIsDisabled = true;
             clearLocatorMaps();
             currentBeaconRssiValues.clear();
+            prev_x = prev_y = prev2_x = prev2_y = MapView.defaultCoord;
             MenuItem localizingMI = menu.findItem(R.id.start_localizing);
             localizingMI.setTitle("Start Locating");
         }
@@ -1397,6 +1417,14 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
 
         requestParameter.put("type", "location_info");
         requestParameter.put("measured_data", beaconInfo);
+        ArrayList<Float> tmp = new ArrayList<>();
+        tmp.add(0, prev_x);
+        tmp.add(1, prev_y);
+        requestParameter.put("previous_position", tmp);
+        ArrayList<Float> tmp2 = new ArrayList<>();
+        tmp2.add(0, prev2_x);
+        tmp2.add(1, prev2_y);
+        requestParameter.put("previous_position2", tmp2);
 
         jsonFingerprintRequestString = new JSONObject(requestParameter).toString();
         Log.d(TAG, jsonFingerprintRequestString);
@@ -1495,6 +1523,23 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     }
 
     /**
+     * Updates the variables that deal with position.
+     * @param x The new, current x.
+     * @param y The new, current y.
+     */
+    private void updatePositionHolders(float x, float y) {
+        prev2_x = prev_x;
+        prev2_y = prev_y;
+
+        prev_x = currPosition_floatX;
+        prev_y = currPosition_floatY;
+
+        currPosition.set((int)x, (int)y);
+        currPosition_floatX = x;
+        currPosition_floatY = y;
+    }
+
+    /**
      * Broadcast receiver - Facilitates the localization process.
      */
     private class localizationReceiver extends BroadcastReceiver {
@@ -1516,12 +1561,13 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                     break;
 
                 case PHASE_THREE:
+                    // TODO: Integrate multiple floors.
                     final String floor = (String)intentPayload.get("floor");
                     final float x = (float)intentPayload.get("x");
                     final float y = (float)intentPayload.get("y");
                     // Update map dot and invalidate map, so it's redrawn.
                     // Probably what we'll do is: store coordinates into a variable, and then call markMaps, which'll draw.
-                    currPosition.set((int)x, (int)y);
+                    updatePositionHolders(x, y);
                     // Check if we're at or near our next coordinates. If we are, change the current direction.
                     Point targetNode = targetNodes.get(curDirection);
                     int dist = getDistance(targetNode.x, targetNode.y, currPosition.x, currPosition.y);
