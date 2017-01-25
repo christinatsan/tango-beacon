@@ -500,6 +500,7 @@ public class LocatorActivity extends AppCompatActivity {
                     if(!curr_floor.equals(prev_floor)) {
                         int newFloorResID = getFloorPlanResourceID(formatToValidResourceName(curr_floor));
                         mapView.setImage(ImageSource.resource(newFloorResID));
+                        prev_x = prev_y = prev2_x = prev2_y = MapView.defaultCoord;
                         prev_floor = curr_floor;
                     } else {
                         mapView.invalidate();
