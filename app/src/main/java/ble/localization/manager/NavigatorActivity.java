@@ -676,7 +676,9 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                     Point QRCodeCoord = new Point(xCoords.get(lastScan),yCoords.get(lastScan));
                     Point firstNode = new Point(start_x, start_y);
                     Point nextNode = new Point(end_x, end_y);
-                    listDirections.add(getAngle(nextNode, firstNode, QRCodeCoord) + " and walk " + getDistance(start_x, start_y, end_x, end_y) + " " + unit);
+                    // The direction given by the old instruction here doesn't seem to be meaningful...
+                    // listDirections.add(getAngle(nextNode, firstNode, QRCodeCoord) + " and walk " + getDistance(start_x, start_y, end_x, end_y) + " " + unit);
+                    listDirections.add("Start by walking " + getDistance(start_x, start_y, end_x, end_y) + " " + unit);
                     lastNode = firstNode;   // Save the current vertex (firstNode) into lastNode to be used on next iteration
                 } else {  // Get angle between v->currentNode and v->next node and finds the turn
                     Point currentNode = new Point(start_x, start_y);
@@ -729,14 +731,22 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         if(angle < 0)   // Puts angle in range from 0<->360 instead of -360<->360
             angle = angle + 360;
 
-        if(angle == 0)  //Shouldn't happen
+        if(angle == 0)  // Shouldn't happen
             return "Move forward";
-        else if(angle < 180)
+        else if (angle < 45)
+            return "Turn slightly right";
+        else if(angle >= 45 && angle < 135)
             return "Turn right";
+        else if(angle >= 135 && angle < 180)
+            return "Turn sharply right";
         else if(angle == 180)   // Shouldn't happen
             return "Turn around";
-        else
+        else if (angle > 315)
+            return "Turn slightly left";
+        else if (angle <= 315 && angle > 225)
             return "Turn left";
+        else /* if (angle <= 225 && angle > 180) */
+            return "Turn sharply left";
     }
 
     private int getDistance(int x1, int y1, int x2, int y2){
