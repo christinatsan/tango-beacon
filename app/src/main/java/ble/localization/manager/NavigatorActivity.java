@@ -865,8 +865,6 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         getSupportActionBar().setTitle(floorNames[curMap]);
     }
 
-    // TODO: Why does it go back a direction sometimes?
-    // TODO: We need a node error or something. Maybe increase the error below. Use getDistance for this.
     private void advanceInstruction() {
         if(curDirection == listDirections.size() - 1 || listDirections.size() == 0) return;
 
@@ -1571,10 +1569,12 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                     // Check if we're at or near our next coordinates. If we are, change the current direction.
                     Point targetNode = targetNodes.get(curDirection);
                     int dist = getDistance(targetNode.x, targetNode.y, currPosition.x, currPosition.y);
-                    if( (!isMetric && dist <= 2) || (isMetric && dist <= 1) ) {
-                        advanceInstruction();  // if we're <= 2 feet/1 meter away from target, advance it
+                    if( (!isMetric && dist <= 5) || (isMetric && dist <= 2) ) {
+                        advanceInstruction();  // if we're <= 3 feet/2 meters away from target, advance it
                     } else {
-                        markMaps(true);
+                        curPath = true;
+                        markMaps(true); // just update the location dot without speaking the direction again
+                        curPath = false;
                     }
                     break;
 
