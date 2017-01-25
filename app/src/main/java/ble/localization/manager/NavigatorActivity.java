@@ -866,6 +866,10 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     }
 
     private void advanceInstruction() {
+        advanceInstruction(true);
+    }
+
+    private void advanceInstruction(boolean speak) {
         if(curDirection == listDirections.size() - 1 || listDirections.size() == 0) return;
 
         directionText.setText(listDirections.get(++curDirection));
@@ -874,9 +878,9 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         }
         //markCurrentPath();
         curPath = true;
-        markMaps();
+        markMaps(!speak);
         curPath = false;
-        speakDirections(1);
+        if (speak) speakDirections(1);
     }
 
     private void speakDirections(int select){
@@ -1566,11 +1570,21 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                     // Update map dot and invalidate map, so it's redrawn.
                     // Probably what we'll do is: store coordinates into a variable, and then call markMaps, which'll draw.
                     updatePositionHolders(x, y);
-                    // Check if we're at or near our next coordinates. If we are, change the current direction.
-                    Point targetNode = targetNodes.get(curDirection);
-                    int dist = getDistance(targetNode.x, targetNode.y, currPosition.x, currPosition.y);
-                    if( (!isMetric && dist <= 5) || (isMetric && dist <= 2) ) {
-                        advanceInstruction();  // if we're <= 3 feet/2 meters away from target, advance it
+                    // Check if we're at or near our next coordinates or even a future node. If we are, change the current direction to that node.
+                    int closestTarget = curDirection - 1;
+                    for(int i = curDirection; i < targetNodes.size(); i++) {
+                        Point targetNode = targetNodes.get(i);
+                        int dist = getDistance(targetNode.x, targetNode.y, currPosition.x, currPosition.y);
+                        if( (!isMetric && dist <= 5) || (isMetric && dist <= 2) ) {
+                            closestTarget = i;
+                            break;
+                        }
+                    }
+                    if(closestTarget >= curDirection) {
+                        for(int i = curDirection; i < closestTarget; i++) {
+                            advanceInstruction(false);
+                        }
+                        advanceInstruction();
                     } else {
                         curPath = true;
                         markMaps(true); // just update the location dot without speaking the direction again
