@@ -35,6 +35,5 @@
     <item
         android:id="@+id/action_units"
         android:title="@string/action_units"
-        android:orderInCategory="1"
-        android:checkable="true" />
+        android:orderInCategory="1"/>
 </menu>

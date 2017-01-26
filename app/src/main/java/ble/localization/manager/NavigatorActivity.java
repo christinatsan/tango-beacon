@@ -46,6 +46,7 @@ import com.google.zxing.integration.android.IntentResult;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.JsonHttpResponseHandler;
 
+import org.apache.commons.lang3.text.WordUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -75,8 +76,6 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     private static final String TAG = "NavigatorActivity";
     public static final int ZXING_REQUEST_CODE = 0x0000c0de;
     public static final int SPEECH_REQUEST_CODE = 123;
-    // public static final float mapScaleMeters = 0.05335f;
-    // public static final float mapScaleFeet = 0.175f;
     private static final String TEXT_RETRIEVAL_BASE_URL = Globals.SERVER_BASE_URL + "/media/graph_txts/";
 
     private ArrayList<Path> route = new ArrayList<>();
@@ -86,7 +85,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     private ImageButton mapButtonNext, mapButtonPrev, speechButton, scanButton, directionNext, directionPrev;
     private TextView locationTxt, destTxt, directionText;
     private TextToSpeech tts;
-    public AlertDialog.Builder destinationsMenu, startPointMenu;
+    public AlertDialog.Builder destinationsMenu, startPointMenu, unitsMenu;
     private Toast toastError, toastSuccess;
     private ImageView floorMap;
     private PhotoViewAttacher fAttacher;
@@ -112,7 +111,20 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     private int tappedCodePrev = -2;
     private boolean samePoint = false;
     private boolean isMatch = false;
-    private boolean isMetric = false;
+
+    public enum measurementUnits {
+        IMPERIAL(5), METRIC(2), STEPS(3);
+        private int allowedError;
+
+        measurementUnits(int error) {
+            this.allowedError = error;
+        }
+    }
+    public String[] stringListOfAllowedUnits;
+    private measurementUnits[] enumListOfAllowedUnits = measurementUnits.values();
+    private static final double feetPerStep = 2.4;
+    private measurementUnits currUnits = measurementUnits.IMPERIAL; // use imperial as default
+
     private boolean isSpeechOn = true;
     private boolean curPath = false;
     private boolean sayDest = false;
@@ -267,6 +279,21 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
             }
         });
 
+        // Initialize the units selector
+        stringListOfAllowedUnits = new String[enumListOfAllowedUnits.length];
+        for (int i = 0; i < enumListOfAllowedUnits.length; i++) {
+            stringListOfAllowedUnits[i] = WordUtils.capitalize(enumListOfAllowedUnits[i].name().toLowerCase());
+        }
+
+        unitsMenu = new AlertDialog.Builder(this);
+        unitsMenu.setTitle("Choose desired units");
+        unitsMenu.setItems(stringListOfAllowedUnits, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                currUnits = enumListOfAllowedUnits[which];
+            }
+        });
+
         // Set that the Estimote service is not yet ready.
         isEstimoteRangingServiceReady[0] = false;
         lastRecord = System.currentTimeMillis();
@@ -363,7 +390,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         isVibrationOn = true;
         samePoint = false;
         isMatch = false;
-        isMetric = false;
+        currUnits = measurementUnits.IMPERIAL;
         isSpeechOn = true;
         invalidateOptionsMenu();
         //floorTxt.setText("NAC Building Floor 1");
@@ -634,10 +661,17 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         cur_dir = null;
         Point lastNode = new Point();
 
-        if(isMetric){
-            unit = "meters";
-        } else {
-            unit = "feet";
+        unit = "";
+        switch (currUnits) {
+            case IMPERIAL:
+                unit = "feet";
+                break;
+            case METRIC:
+                unit = "meters";
+                break;
+            case STEPS:
+                unit = "steps";
+                break;
         }
 
         int start_x = nodePoints.get(floor).get(path.get(0)).x;
@@ -751,10 +785,17 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
 
     private int getDistance(int x1, int y1, int x2, int y2){
         double distanceInPixels = Math.sqrt(Math.pow((double)(x2 - x1),2) + Math.pow((double)(y2 - y1),2));
-        if(isMetric)
-            return (int)(distanceInPixels * mapScaleMeters[curMap]);
-        else
-            return (int)(distanceInPixels * mapScaleFeet[curMap]);
+
+        switch (currUnits) {
+            case METRIC:
+                return (int)(distanceInPixels * mapScaleMeters[curMap]);
+            case IMPERIAL:
+                return (int)(distanceInPixels * mapScaleFeet[curMap]);
+            case STEPS:
+                return (int)Math.round((distanceInPixels * mapScaleFeet[curMap])/feetPerStep);
+            default:
+                return 0; // shouldn't happen
+        }
     }
 
     private int getSlope(int x1, int y1, int x2, int y2){
@@ -1037,14 +1078,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                 }
                 return true;
             case R.id.action_units:
-                if(item.isChecked()) {
-                    item.setChecked(false);
-                    isMetric = false;
-                }
-                else{
-                    item.setChecked(true);
-                    isMetric = true;
-                }
+                unitsMenu.show();
                 return true;
             case R.id.action_speak:
                 if(item.isChecked()) {
@@ -1585,7 +1619,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                     for(int i = curDirection; i < targetNodes.size(); i++) {
                         Point targetNode = targetNodes.get(i);
                         int dist = getDistance(targetNode.x, targetNode.y, currPosition.x, currPosition.y);
-                        if( (!isMetric && dist <= 5) || (isMetric && dist <= 2) ) {
+                        if( dist <= currUnits.allowedError ) {
                             closestTarget = i;
                             break;
                         }
