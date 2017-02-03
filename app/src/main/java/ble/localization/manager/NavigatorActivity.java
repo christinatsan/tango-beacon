@@ -72,6 +72,9 @@ import uk.co.senab.photoview.PhotoViewAttacher;
 
 public class NavigatorActivity extends AppCompatActivity implements View.OnClickListener {
 
+    // TODO: Constant updates on location as we get closer.
+    // TODO: Look into "Start Localizing" and "Stop Localizing & Reset" buttons.
+    // TODO: Fix compatibility with Android Nougat (Estimote SDK)
     // Initialize global variables
     private static final String TAG = "NavigatorActivity";
     public static final int ZXING_REQUEST_CODE = 0x0000c0de;
@@ -113,7 +116,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     private boolean isMatch = false;
 
     public enum measurementUnits {
-        IMPERIAL(5), METRIC(2), STEPS(3);
+        IMPERIAL(6), METRIC(2), STEPS(3);   // TODO: Automatically calculate the other errors using one?
         private int allowedError;
 
         measurementUnits(int error) {
@@ -759,12 +762,15 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
 
     private String getAngle(Point p1, Point v, Point p2){
         //Gets the angle between the vertex v -> p1 and v -> p2
+        // TODO: Make it p1 -> v then v -> p2?
         //Then uses the angle to find what direction to turn
         double angle = Math.atan2(p1.y - v.y, p1.x - v.x) - Math.atan2(p2.y - v.y, p2.x - v.x);
         angle = angle * 360 / (2 * Math.PI);    //convert from radians to degrees
         if(angle < 0)   // Puts angle in range from 0<->360 instead of -360<->360
             angle = angle + 360;
 
+        // Log.d(TAG, Double.toString(angle));
+        // TODO: Which angles really correspond to which turning instructions? Find a way to fix this.
         if(angle == 0)  // Shouldn't happen
             return "Move forward";
         else if (angle < 45)
@@ -935,7 +941,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     }
 
     private void speakDirections(int select){
-        if(isSpeechOn) {
+        if(isSpeechOn) {    // TODO: Replace deprecated methods.
             if (listDirections.size() > 0 && select == 1)
                 tts.speak(listDirections.get(curDirection), TextToSpeech.QUEUE_FLUSH, null);
             else if(select == 2)
