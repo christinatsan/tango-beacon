@@ -20,6 +20,7 @@ import android.graphics.PointF;
 import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.StrictMode;
 import android.os.Vibrator;
 import android.speech.RecognizerIntent;
@@ -941,11 +942,22 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     }
 
     private void speakDirections(int select){
-        if(isSpeechOn) {    // TODO: Replace deprecated methods.
-            if (listDirections.size() > 0 && select == 1)
+        if(!isSpeechOn) return;
+
+        if(Build.VERSION.SDK_INT >= 21) {
+            if (listDirections.size() > 0 && select == 1) {
+                tts.speak(listDirections.get(curDirection), TextToSpeech.QUEUE_FLUSH, null, "ble_navigator_direction_" + Long.toString(System.currentTimeMillis()));
+            } else if(select == 2) {
+                tts.speak("You have selected the " + Locations.get(tappedCode), TextToSpeech.QUEUE_FLUSH, null, "ble_navigator_direction_" + Long.toString(System.currentTimeMillis()));
+            }
+        } else {
+            if (listDirections.size() > 0 && select == 1) {
+                // noinspection deprecation
                 tts.speak(listDirections.get(curDirection), TextToSpeech.QUEUE_FLUSH, null);
-            else if(select == 2)
+            } else if (select == 2) {
+                // noinspection deprecation
                 tts.speak("You have selected the " + Locations.get(tappedCode), TextToSpeech.QUEUE_FLUSH, null);
+            }
         }
     }
 
