@@ -680,7 +680,6 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         int start_y = nodePoints.get(floor).get(path.get(0)).y;
         int end_x,end_y;
 
-        // TODO: Constant updates on location as we get closer.
         for(int index = 1; index < path.size() - 1; index++){
             int prevIdx = path.get(index - 1);
             int curIdx = path.get(index);
@@ -696,7 +695,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
             int slope_1 = getSlope(prev_x, prev_y, cur_x, cur_y);
             int slope_2 = getSlope(cur_x, cur_y, next_x, next_y);
 
-            if(slope_1 != slope_2){
+            // if(slope_1 != slope_2){
                 end_x = cur_x;
                 end_y = cur_y;
                 routePoints.add(new PointF((float)start_x, (float)start_y));
@@ -720,14 +719,21 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                 } else {  // Get angle between v->currentNode and v->next node and finds the turn
                     Point currentNode = new Point(start_x, start_y);
                     Point nextNode = new Point(end_x, end_y);
-                    listDirections.add(getAngle(lastNode, currentNode, nextNode) + " and walk " + getDistance(start_x, start_y, end_x, end_y) + " " + unit);
+
+                    String turning_instruction = getAngle(lastNode, currentNode, nextNode);
+                    if (turning_instruction.equals("Go straight ahead")) {
+                        listDirections.add(turning_instruction + " and walk for another " + getDistance(start_x, start_y, end_x, end_y) + " " + unit);
+                    } else {
+                        listDirections.add(turning_instruction + " and walk " + getDistance(start_x, start_y, end_x, end_y) + " " + unit);
+                    }
+
                     lastNode = currentNode;   // Save the current vertex (currentNode) into lastNode to be used on next iteration
                 }
                 targetNodes.add(new Point(end_x, end_y));
                 distances.add(getDistance(start_x, start_y, end_x, end_y));
                 start_x = end_x;
                 start_y = end_y;
-            }
+            // }
         }
 
         end_x = nodePoints.get(floor).get(path.get(path.size() - 1)).x;
@@ -754,7 +760,14 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         //next_dir = getDirection(start_x, start_y, end_x, end_y);
         Point currentNode = new Point(start_x, start_y);
         Point nextNode = new Point(end_x, end_y);
-        listDirections.add(getAngle(lastNode, currentNode, nextNode) + " and walk " + getDistance(start_x, start_y, end_x, end_y) + " " + unit);
+
+        String turning_instruction = getAngle(lastNode, currentNode, nextNode);
+        if (turning_instruction.equals("Go straight ahead")) {
+            listDirections.add(turning_instruction + " and walk for another " + getDistance(start_x, start_y, end_x, end_y) + " " + unit);
+        } else {
+            listDirections.add(turning_instruction + " and walk " + getDistance(start_x, start_y, end_x, end_y) + " " + unit);
+        }
+
         targetNodes.add(new Point(end_x, end_y));
         distances.add(getDistance(start_x, start_y, end_x, end_y));
         listDirections.add("Arrived at the " + Locations.get(tappedCode));
@@ -762,7 +775,6 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
 
     private String getAngle(Point p1, Point v, Point p2){
         //Gets the angle between the vertex v -> p1 and v -> p2
-        // TODO: Make it p1 -> v then v -> p2?
         //Then uses the angle to find what direction to turn
         double angle = Math.atan2(p1.y - v.y, p1.x - v.x) - Math.atan2(p2.y - v.y, p2.x - v.x);
         angle = angle * 360 / (2 * Math.PI);    //convert from radians to degrees
@@ -771,20 +783,20 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
 
         // Log.d(TAG, "Angle: " + Double.toString(angle));
         if(angle == 0)  // Shouldn't happen
-            return "Go straight ahead";
+            return "Make a U-turn";
         else if (angle < 50)
             return "Turn sharply right";
         else if(angle >= 50 && angle < 130)
             return "Turn right";
-        else if(angle >= 130 && angle < 180)
+        else if(angle >= 130 && angle < 179)
             return "Turn slightly right";
-        else if(angle == 180)   // Shouldn't happen
-            return "Make a U-turn";
+        else if(angle >= 179 && angle <= 181)
+            return "Go straight ahead";
         else if (angle > 310)
             return "Turn sharply left";
         else if (angle <= 310 && angle > 230)
             return "Turn left";
-        else /* if (angle <= 230 && angle > 180) */
+        else /* if (angle <= 230 && angle > 181) */
             return "Turn slightly left";
     }
 
@@ -1420,6 +1432,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
 
     // Data holders
     private Map<Integer, ArrayList<Integer>> currentBeaconRssiValues = new HashMap<>(); // current values
+    // TODO: Fix crash
     private Map<Integer, ArrayList<Integer>> usedBeaconRssiValues; // used values for sending in localization
 
     protected enum localizationPhase {
