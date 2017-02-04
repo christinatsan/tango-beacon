@@ -1432,8 +1432,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
 
     // Data holders
     private Map<Integer, ArrayList<Integer>> currentBeaconRssiValues = new HashMap<>(); // current values
-    // TODO: Fix crash
-    private Map<Integer, ArrayList<Integer>> usedBeaconRssiValues; // used values for sending in localization
+    private Map<Integer, ArrayList<Integer>> usedBeaconRssiValues = new HashMap<>(); // used values for sending in localization
 
     protected enum localizationPhase {
         PHASE_ONE,
