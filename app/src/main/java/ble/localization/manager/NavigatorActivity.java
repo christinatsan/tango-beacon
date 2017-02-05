@@ -115,17 +115,18 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     private boolean isMatch = false;
 
     public enum measurementUnits {
-        IMPERIAL(6), METRIC(2), STEPS(3);   // TODO: Automatically calculate the other errors using one?
-        private int allowedError;
-
-        measurementUnits(int error) {
-            this.allowedError = error;
-        }
+        IMPERIAL,
+        METRIC,
+        STEPS
     }
+
     public String[] stringListOfAllowedUnits;
     private measurementUnits[] enumListOfAllowedUnits = measurementUnits.values();
-    private static final double feetPerStep = 2.4;
     private measurementUnits currUnits = measurementUnits.IMPERIAL; // use imperial as default
+
+    private static int allowedErrorInFeet = 6;
+    private static final double feetPerStep = 2.4;
+    private static final double feetPerMeter = 3.28084;
 
     private boolean isSpeechOn = true;
     private boolean curPath = false;
@@ -148,8 +149,6 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
 
     private float prev2_x = MapView.defaultCoord;
     private float prev2_y = MapView.defaultCoord;
-
-    private static ProgressDialog waitingForLocationDialog;
 
     /*
     onCreate - This function is called at the program start. Some of our global variables and our UI elements are initialized here.
@@ -335,13 +334,6 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                 Log.d(TAG, "Connected to ranging service.");
             }
         });
-
-        waitingForLocationDialog = new ProgressDialog(NavigatorActivity.this);
-        waitingForLocationDialog.setTitle("Waiting for Location");
-        waitingForLocationDialog.setMessage("Please wait.");
-        waitingForLocationDialog.setIndeterminate(true);
-        waitingForLocationDialog.setCancelable(false);
-        waitingForLocationDialog.setCanceledOnTouchOutside(false);
     }
 
     /**
@@ -1654,7 +1646,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                     for(int i = curDirection; i < targetNodes.size(); i++) {
                         Point targetNode = targetNodes.get(i);
                         int dist = getDistance(targetNode.x, targetNode.y, currPosition.x, currPosition.y);
-                        if( dist <= currUnits.allowedError ) {
+                        if( dist <= currentAllowedError() ) {
                             closestTarget = i;
                             break;
                         }
@@ -1673,6 +1665,19 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
 
             }
 
+        }
+    }
+
+    private int currentAllowedError() {
+        switch (currUnits) {
+            case IMPERIAL:
+                return allowedErrorInFeet;
+            case METRIC:
+                return (int)(allowedErrorInFeet / feetPerMeter);
+            case STEPS:
+                return (int)(allowedErrorInFeet / feetPerStep);
+            default:    // shouldn't happen
+                return 0;
         }
     }
 }
