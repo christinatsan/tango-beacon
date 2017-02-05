@@ -370,6 +370,13 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     @Override
     public void onDestroy() {
         if(locatingBeaconManager != null) Globals.disconnectBeaconManager(locatingBeaconManager, isEstimoteRangingServiceReady);
+
+        if(tts != null) {
+            tts.stop();
+            tts.shutdown();
+            Log.d(TAG, "TTS Destroyed");
+        }
+
         super.onDestroy();
     }
 
