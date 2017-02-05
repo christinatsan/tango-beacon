@@ -36,4 +36,8 @@
         android:id="@+id/action_units"
         android:title="@string/action_units"
         android:orderInCategory="1"/>
+    <item
+        android:id="@+id/action_modifyerror"
+        android:orderInCategory="6"
+        android:title="Modify Allowed Error" />
 </menu>

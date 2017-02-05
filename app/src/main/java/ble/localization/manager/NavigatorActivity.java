@@ -343,6 +343,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     public void onResume() {
         super.onResume();
         this.registerReceiver(mLocalizationReceiver, localizationFilter);
+        this.registerReceiver(mErrorModifier, errorModifierFilter);
     }
 
     /**
@@ -352,6 +353,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     @Override
     public void onPause() {
         this.unregisterReceiver(mLocalizationReceiver);
+        this.unregisterReceiver(mErrorModifier);
         if(locatingBeaconManager != null) locatingBeaconManager.stopRanging(Globals.region);
         super.onPause();
     }
@@ -1107,6 +1109,10 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
             case R.id.action_units:
                 unitsMenu.show();
                 return true;
+            case R.id.action_modifyerror:
+                AllowedErrorModifierDialog aemDialog = new AllowedErrorModifierDialog(this, feetPerStep, feetPerMeter, allowedErrorInFeet);
+                aemDialog.show();
+                return true;
             case R.id.action_speak:
                 if(item.isChecked()) {
                     item.setChecked(false);
@@ -1421,6 +1427,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     private static final int timeToRecord = 3000;
     private static final String URL_ENDPOINT = "/location";
     public static final String LOCATOR_BROADCAST_ACTION = "ble.localization.navigator.LOCATE";
+    public static final String ERROR_CHANGE_BROADCAST_ACTION = "ble.localization.navigator.CHANGE_ERROR";
 
     private BeaconManager locatingBeaconManager;
     private static boolean[] isEstimoteRangingServiceReady = new boolean[1];
@@ -1428,6 +1435,9 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
 
     private BroadcastReceiver mLocalizationReceiver = new localizationReceiver();
     private IntentFilter localizationFilter = new IntentFilter(LOCATOR_BROADCAST_ACTION);
+
+    private BroadcastReceiver mErrorModifier = new ChangeErrorReceiver();
+    private IntentFilter errorModifierFilter = new IntentFilter(ERROR_CHANGE_BROADCAST_ACTION);
 
     // Data holders
     private Map<Integer, ArrayList<Integer>> currentBeaconRssiValues = new HashMap<>(); // current values
@@ -1678,6 +1688,18 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                 return (int)(allowedErrorInFeet / feetPerStep);
             default:    // shouldn't happen
                 return 0;
+        }
+    }
+
+    /**
+     * Broadcast receiver - Changes the allowed error.
+     */
+    private class ChangeErrorReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final Bundle intentPayload = intent.getExtras();
+            allowedErrorInFeet = (int)intentPayload.get("desired_error");
+            // Toast.makeText(getApplicationContext(), "Allowed error changed to " + Integer.toString(allowedErrorInFeet) + "!", Toast.LENGTH_SHORT).show();
         }
     }
 }
