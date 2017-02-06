@@ -151,7 +151,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     private float prev2_x = MapView.defaultCoord;
     private float prev2_y = MapView.defaultCoord;
 
-    private static ArrayList<String> allAvailableBeaconCats;
+    private static ArrayList<String> allAvailableBeaconCats = null;
     private static String currentBeaconCat = "";
 
     /*
@@ -342,11 +342,6 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         // get beacon type categories
         AsyncHttpClient client = new AsyncHttpClient();
 
-        if(menu != null) {
-            MenuItem item = menu.findItem(R.id.action_selectbeaconstobeused);
-            item.setEnabled(false);
-        }
-
         client.get(NavigatorActivity.this, Globals.SERVER_BASE_API_URL + "/get_beacon_cats", new JsonHttpResponseHandler() {
             @Override
             public void onStart() {
@@ -387,11 +382,6 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                         Toast.makeText(NavigatorActivity.this, "Beacons to be used: " + menu_options[which], Toast.LENGTH_SHORT).show();
                     }
                 });
-
-                if(menu != null) {
-                    MenuItem item = menu.findItem(R.id.action_selectbeaconstobeused);
-                    item.setEnabled(true);
-                }
             }
 
             @Override
@@ -415,7 +405,6 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
             public void onFinish() {
                 // Completed the request (either success or failure)
                 // Clear maps to prepare for next location
-                clearLocatorMaps();
             }
         });
     }
@@ -1158,6 +1147,16 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         menu.findItem(R.id.action_units).setChecked(false);
         menu.findItem(R.id.action_speak).setChecked(true);
         this.menu = menu;
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        if(allAvailableBeaconCats == null) {
+            menu.findItem(R.id.action_selectbeaconstobeused).setEnabled(false);
+        } else {
+            menu.findItem(R.id.action_selectbeaconstobeused).setEnabled(true);
+        }
         return true;
     }
 
