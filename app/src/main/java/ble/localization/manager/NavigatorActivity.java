@@ -58,6 +58,7 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -87,7 +88,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
     private ImageButton mapButtonNext, mapButtonPrev, speechButton, scanButton, directionNext, directionPrev;
     private TextView locationTxt, destTxt, directionText;
     private TextToSpeech tts;
-    public AlertDialog.Builder destinationsMenu, startPointMenu, unitsMenu;
+    public AlertDialog.Builder destinationsMenu, startPointMenu, unitsMenu, beaconTypesMenu;
     private Toast toastError, toastSuccess;
     private ImageView floorMap;
     private PhotoViewAttacher fAttacher;
@@ -149,6 +150,9 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
 
     private float prev2_x = MapView.defaultCoord;
     private float prev2_y = MapView.defaultCoord;
+
+    private static ArrayList<String> allAvailableBeaconCats;
+    private static String currentBeaconCat = "";
 
     /*
     onCreate - This function is called at the program start. Some of our global variables and our UI elements are initialized here.
@@ -332,6 +336,86 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
             public void onServiceReady() {
                 isEstimoteRangingServiceReady[0] = true;
                 Log.d(TAG, "Connected to ranging service.");
+            }
+        });
+
+        // get beacon type categories
+        AsyncHttpClient client = new AsyncHttpClient();
+
+        if(menu != null) {
+            MenuItem item = menu.findItem(R.id.action_selectbeaconstobeused);
+            item.setEnabled(false);
+        }
+
+        client.get(NavigatorActivity.this, Globals.SERVER_BASE_API_URL + "/get_beacon_cats", new JsonHttpResponseHandler() {
+            @Override
+            public void onStart() {
+                // Initiated the request
+            }
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, JSONObject responseBody) {
+                // Successfully got a response
+                // If we didn't get a match, return.
+                try {
+                    JSONArray all_categories = responseBody.getJSONArray("available_categories");
+                    allAvailableBeaconCats = new ArrayList<>();
+                    for (int i = 0; i < all_categories.length(); i++){
+                        allAvailableBeaconCats.add(all_categories.getString(i));
+                    }
+                } catch (JSONException e) { }
+
+                // sort in alphabetical order
+                Collections.sort(allAvailableBeaconCats, new Comparator<String>() {
+                    @Override
+                    public int compare(String s1, String s2) {
+                        return s1.compareToIgnoreCase(s2);
+                    }
+                });
+
+                allAvailableBeaconCats.add(0, "");
+
+                final String[] menu_options = allAvailableBeaconCats.toArray(new String[allAvailableBeaconCats.size()]);
+                menu_options[0] = "<Use all beacons>";
+
+                beaconTypesMenu = new AlertDialog.Builder(NavigatorActivity.this);
+                beaconTypesMenu.setTitle("Choose beacon type for location calculations");
+                beaconTypesMenu.setItems(menu_options, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        currentBeaconCat = allAvailableBeaconCats.get(which);
+                        Toast.makeText(NavigatorActivity.this, "Beacons to be Used: " + menu_options[which], Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+                if(menu != null) {
+                    MenuItem item = menu.findItem(R.id.action_selectbeaconstobeused);
+                    item.setEnabled(true);
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, Throwable error, JSONObject responseBody)
+            {
+                // Request failed
+                Globals.showSnackbar(findViewById(android.R.id.content), "Sending location data failed. (Server response code: " + statusCode + ")");
+            }
+
+            @Override
+            public void onRetry(int retryNo) {
+                // Request was retried
+            }
+
+            @Override
+            public void onProgress(long bytesWritten, long totalSize) {
+                // Progress notification
+            }
+
+            @Override
+            public void onFinish() {
+                // Completed the request (either success or failure)
+                // Clear maps to prepare for next location
+                clearLocatorMaps();
             }
         });
     }
@@ -1096,6 +1180,9 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
             case R.id.action_source:
                 startPointMenu.show();
                 return true;
+            case R.id.action_selectbeaconstobeused:
+                beaconTypesMenu.show();
+                return true;
             case R.id.action_vibration:
                 if(item.isChecked()) {
                     item.setChecked(false);
@@ -1508,6 +1595,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
         tmp2.add(0, prev2_x);
         tmp2.add(1, prev2_y);
         requestParameter.put("previous_position2", tmp2);
+        requestParameter.put("beacon_type", currentBeaconCat);
 
         jsonFingerprintRequestString = new JSONObject(requestParameter).toString();
         Log.d(TAG, jsonFingerprintRequestString);

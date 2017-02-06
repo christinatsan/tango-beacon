@@ -40,4 +40,8 @@
         android:id="@+id/action_modifyerror"
         android:orderInCategory="6"
         android:title="Modify Allowed Error" />
+    <item
+        android:id="@+id/action_selectbeaconstobeused"
+        android:orderInCategory="6"
+        android:title="Select Locator Beacons" />
 </menu>
