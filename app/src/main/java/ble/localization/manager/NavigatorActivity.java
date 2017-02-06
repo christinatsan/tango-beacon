@@ -384,7 +384,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         currentBeaconCat = allAvailableBeaconCats.get(which);
-                        Toast.makeText(NavigatorActivity.this, "Beacons to be Used: " + menu_options[which], Toast.LENGTH_SHORT).show();
+                        Toast.makeText(NavigatorActivity.this, "Beacons to be used: " + menu_options[which], Toast.LENGTH_SHORT).show();
                     }
                 });
 
@@ -398,7 +398,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
             public void onFailure(int statusCode, Header[] headers, Throwable error, JSONObject responseBody)
             {
                 // Request failed
-                Globals.showSnackbar(findViewById(android.R.id.content), "Sending location data failed. (Server response code: " + statusCode + ")");
+                Globals.showSnackbar(findViewById(android.R.id.content), "Beacon categories could not retrieved. This feature will not be available.");
             }
 
             @Override
