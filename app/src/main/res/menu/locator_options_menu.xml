@@ -1,4 +1,6 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/return_to_fingerprinter"
         android:title="Fingerprinter" />
+    <item android:id="@+id/action_selectbeaconstobeused"
+        android:title="Select Locator Beacons" />
 </menu>

@@ -3,10 +3,12 @@ package ble.localization.manager;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -15,6 +17,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
 
@@ -31,6 +34,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,6 +102,11 @@ public class LocatorActivity extends AppCompatActivity {
     private float prev2_y = MapView.defaultCoord;
 
     private static ProgressDialog waitingForLocationDialog;
+
+    private static ArrayList<String> allAvailableBeaconCats = null;
+    private static String currentBeaconCat = "";
+
+    public AlertDialog.Builder beaconTypesMenu;
 
     /**
      * Gets the resource ID of the floor plan we want.
@@ -217,6 +227,75 @@ public class LocatorActivity extends AppCompatActivity {
         waitingForLocationDialog.setIndeterminate(true);
         waitingForLocationDialog.setCancelable(false);
         waitingForLocationDialog.setCanceledOnTouchOutside(false);
+
+        // get beacon type categories
+        AsyncHttpClient client = new AsyncHttpClient();
+
+        client.get(LocatorActivity.this, Globals.SERVER_BASE_API_URL + "/get_beacon_cats", new JsonHttpResponseHandler() {
+            @Override
+            public void onStart() {
+                // Initiated the request
+            }
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, JSONObject responseBody) {
+                // Successfully got a response
+                // If we didn't get a match, return.
+                try {
+                    JSONArray all_categories = responseBody.getJSONArray("available_categories");
+                    allAvailableBeaconCats = new ArrayList<>();
+                    for (int i = 0; i < all_categories.length(); i++){
+                        allAvailableBeaconCats.add(all_categories.getString(i));
+                    }
+                } catch (JSONException e) { }
+
+                // sort in alphabetical order
+                Collections.sort(allAvailableBeaconCats, new Comparator<String>() {
+                    @Override
+                    public int compare(String s1, String s2) {
+                        return s1.compareToIgnoreCase(s2);
+                    }
+                });
+
+                allAvailableBeaconCats.add(0, "");
+
+                final String[] menu_options = allAvailableBeaconCats.toArray(new String[allAvailableBeaconCats.size()]);
+                menu_options[0] = "<Use all beacons>";
+
+                beaconTypesMenu = new AlertDialog.Builder(LocatorActivity.this);
+                beaconTypesMenu.setTitle("Choose beacon type for location calculations");
+                beaconTypesMenu.setItems(menu_options, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        currentBeaconCat = allAvailableBeaconCats.get(which);
+                        Toast.makeText(LocatorActivity.this, "Beacons to be used: " + menu_options[which], Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, Throwable error, JSONObject responseBody)
+            {
+                // Request failed
+                Globals.showSnackbar(findViewById(android.R.id.content), "Beacon categories could not retrieved. This feature will not be available.");
+            }
+
+            @Override
+            public void onRetry(int retryNo) {
+                // Request was retried
+            }
+
+            @Override
+            public void onProgress(long bytesWritten, long totalSize) {
+                // Progress notification
+            }
+
+            @Override
+            public void onFinish() {
+                // Completed the request (either success or failure)
+                // Clear maps to prepare for next location
+            }
+        });
     }
 
     /**
@@ -262,6 +341,16 @@ public class LocatorActivity extends AppCompatActivity {
         return true;
     }
 
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        if(allAvailableBeaconCats == null) {
+            menu.findItem(R.id.action_selectbeaconstobeused).setEnabled(false);
+        } else {
+            menu.findItem(R.id.action_selectbeaconstobeused).setEnabled(true);
+        }
+        return true;
+    }
+
     /**
      * Called whenever an item in the options menu is selected.
      * @param item The menu item that was selected.
@@ -273,6 +362,9 @@ public class LocatorActivity extends AppCompatActivity {
             case R.id.return_to_fingerprinter:
                 // return to fingerprinter here
                 finish();
+                break;
+            case R.id.action_selectbeaconstobeused:
+                beaconTypesMenu.show();
                 break;
             default:
                 return super.onOptionsItemSelected(item);
@@ -336,6 +428,7 @@ public class LocatorActivity extends AppCompatActivity {
         tmp2.add(0, prev2_x);
         tmp2.add(1, prev2_y);
         requestParameter.put("previous_position2", tmp2);
+        requestParameter.put("beacon_type", currentBeaconCat);
 
         jsonFingerprintRequestString = new JSONObject(requestParameter).toString();
         Log.d(TAG, jsonFingerprintRequestString);
