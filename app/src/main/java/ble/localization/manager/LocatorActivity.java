@@ -1,5 +1,6 @@
 package ble.localization.manager;
 
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -7,7 +8,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.design.widget.BaseTransientBottomBar;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -26,6 +30,7 @@ import com.estimote.sdk.BeaconManager;
 import com.estimote.sdk.Region;
 import com.estimote.sdk.SystemRequirementsChecker;
 
+import com.google.gson.Gson;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.JsonHttpResponseHandler;
 
@@ -37,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -71,19 +77,16 @@ public class LocatorActivity extends AppCompatActivity {
     private IntentFilter localizationFilter = new IntentFilter(LOCATOR_BROADCAST_ACTION);
 
     // Data holders
-    private Map<Integer, ArrayList<Integer>> currentBeaconRssiValues = new HashMap<>(); // current values
-    private Map<Integer, ArrayList<Integer>> usedBeaconRssiValues; // used values for sending in localization
+    private LinkedHashMap<Integer, Integer> currentBeaconRssiValues = new LinkedHashMap<>(); // current values
+    private PreviousReadingHolder rssiHolder = new PreviousReadingHolder();
+    private int currentCounter = 0;
+    static final int MAX_COUNTER = 2; // max number of additional readings to get before sending again
 
     protected enum localizationPhase {
         PHASE_ONE,
         PHASE_TWO,
         PHASE_THREE,
     }
-
-    // Data holders
-    private Map<String, Object> requestParameter = new HashMap<>();
-    private ArrayList<Object> beaconInfo = new ArrayList<>();   // major-RSSI values
-    private String jsonFingerprintRequestString;
 
     // Button-related stuff
     private Button locateButton;
@@ -101,10 +104,15 @@ public class LocatorActivity extends AppCompatActivity {
     private float prev2_x = MapView.defaultCoord;
     private float prev2_y = MapView.defaultCoord;
 
-    private static ProgressDialog waitingForLocationDialog;
+    private static Snackbar waitingForLocationSnackbar;
+    private boolean isLocationSnackbarShowing = false;
+    private static ProgressDialog waitingForSufficientReadings;
 
     private static ArrayList<String> allAvailableBeaconCats = null;
     private static String currentBeaconCat = "";
+
+    private float prev_est_uncert = 0;
+    private float pre_prev_est_uncert = 0;
 
     public AlertDialog.Builder beaconTypesMenu;
 
@@ -191,24 +199,19 @@ public class LocatorActivity extends AppCompatActivity {
             @Override
             public void onBeaconsDiscovered(Region region, List<Beacon> list) {
                 // Beacon discovery code during localization.
+                // TODO: What do we do if we don't detect any beacons?
                 for(Beacon b : list) {
-                    if(!currentBeaconRssiValues.containsKey(b.getMajor())) {
-                        currentBeaconRssiValues.put(b.getMajor(), new ArrayList<Integer>());
-                    }
-                    currentBeaconRssiValues.get(b.getMajor()).add(b.getRssi());
-
-                    // Keep adding until we've surpassed the timetoRecord.
-                    if (System.currentTimeMillis() >= (lastRecord + timeToRecord)) {
-                        lastRecord = System.currentTimeMillis();
-                        usedBeaconRssiValues = new HashMap<>(currentBeaconRssiValues);
-                        currentBeaconRssiValues.clear();
-
-                        // Send intent for the next phase of localization.
-                        final Intent beginLocalizing = new Intent(LOCATOR_BROADCAST_ACTION);
-                        beginLocalizing.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_ONE);
-                        getApplicationContext().sendBroadcast(beginLocalizing);
-                    }
+                    currentBeaconRssiValues.put(b.getMajor(), b.getRssi());
                 }
+
+                LinkedHashMap<Integer, Integer> usedBeaconRssiValues = new LinkedHashMap<>(currentBeaconRssiValues);
+                currentBeaconRssiValues.clear();
+
+                // Send intent for the next phase of localization.
+                final Intent processValuesForSending = new Intent(LOCATOR_BROADCAST_ACTION);
+                processValuesForSending.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_ONE);
+                processValuesForSending.putExtra("usedBeaconRssiValues", usedBeaconRssiValues);
+                getApplicationContext().sendBroadcast(processValuesForSending);
 
             }
         });
@@ -221,12 +224,44 @@ public class LocatorActivity extends AppCompatActivity {
             }
         });
 
-        waitingForLocationDialog = new ProgressDialog(LocatorActivity.this);
-        waitingForLocationDialog.setTitle("Waiting for Location");
-        waitingForLocationDialog.setMessage("Please wait.");
-        waitingForLocationDialog.setIndeterminate(true);
-        waitingForLocationDialog.setCancelable(false);
-        waitingForLocationDialog.setCanceledOnTouchOutside(false);
+        waitingForLocationSnackbar = Snackbar.make(findViewById(android.R.id.content), "Waiting for true location. Please wait...", Snackbar.LENGTH_INDEFINITE);
+        if (Build.VERSION.SDK_INT < 25) {
+            waitingForLocationSnackbar.setCallback(new Snackbar.Callback() {
+                @Override
+                public void onDismissed(Snackbar snackbar, int event) {
+                    //see Snackbar.Callback docs for event details
+                    isLocationSnackbarShowing = false;
+                    super.onDismissed(snackbar, event);
+                }
+
+                @Override
+                public void onShown(Snackbar snackbar) {
+                    super.onShown(snackbar);
+                    isLocationSnackbarShowing = true;
+                }
+            });
+        } else {
+            waitingForLocationSnackbar.addCallback(new BaseTransientBottomBar.BaseCallback<Snackbar>() {
+                @Override
+                public void onDismissed(Snackbar transientBottomBar, int event) {
+                    isLocationSnackbarShowing = false;
+                    super.onDismissed(transientBottomBar, event);
+                }
+
+                @Override
+                public void onShown(Snackbar transientBottomBar) {
+                    super.onShown(transientBottomBar);
+                    isLocationSnackbarShowing = true;
+                }
+            });
+        }
+
+        waitingForSufficientReadings = new ProgressDialog(LocatorActivity.this);
+        waitingForSufficientReadings.setTitle("Waiting for Readings");
+        waitingForSufficientReadings.setMessage("Please wait.");
+        waitingForSufficientReadings.setIndeterminate(true);
+        waitingForSufficientReadings.setCancelable(false);
+        waitingForSufficientReadings.setCanceledOnTouchOutside(false);
 
         // get beacon type categories
         AsyncHttpClient client = new AsyncHttpClient();
@@ -398,57 +433,76 @@ public class LocatorActivity extends AppCompatActivity {
     /**
      * Process the captured values.
      */
-    private void processValues() {
+    @SuppressLint("DefaultLocale")
+    private void processValues(HashMap<Integer, Integer> valuesToBeUsed) {
         Log.d(TAG, "Processing values.");
-        Log.v(TAG, "ALL Values: " + usedBeaconRssiValues.toString());
+        Log.v(TAG, "ALL Values: " + valuesToBeUsed.toString());
 
-        if (usedBeaconRssiValues.size() == 0) return;
+        if (valuesToBeUsed.size() == 0) return;
 
-        // Process some more.
-        for(Integer key : usedBeaconRssiValues.keySet()) {
-            ArrayList<Double> RSSIs = new ArrayList<>();
-            for(Integer rssi : usedBeaconRssiValues.get(key)) {
-                RSSIs.add((double)rssi);
-            }
-            // TODO: Maybe don't use trimmed mean since we don't have too many readings?
-            Double avg = MathFunctions.doubleRound(MathFunctions.trimmedMean(RSSIs, FingerprinterActivity.PERCENT_CUTOFF), FingerprinterActivity.DECIMAL_PLACES);
-            Map<String, Object> beaconRssi = new HashMap<>();
-            beaconRssi.put("major", key);
-            beaconRssi.put("rssi", avg);
-            beaconInfo.add(beaconRssi);
+        if(!waitingForSufficientReadings.isShowing() && rssiHolder.isEmpty()) {
+            waitingForSufficientReadings.setMessage(String.format("Please wait. Obtained 0/%d readings.", PreviousReadingHolder.NUMBER_OF_POSITIONS_TO_HOLD));
+            waitingForSufficientReadings.show();
         }
 
+        // add new values to rssi history
+        rssiHolder.add(valuesToBeUsed);
+
+        if(waitingForSufficientReadings.isShowing()) {
+            waitingForSufficientReadings.setMessage(String.format("Please wait. Obtained %d/%d readings.", rssiHolder.currentSize(), PreviousReadingHolder.NUMBER_OF_POSITIONS_TO_HOLD));
+            if(!rssiHolder.isFilled()) {
+                return;
+            } else if(rssiHolder.isFilled()) {
+                waitingForSufficientReadings.dismiss();
+            }
+        }
+
+        // increment the counter and check if we've reached the required number of readings before advancing
+        currentCounter += 1;
+        if(currentCounter < MAX_COUNTER) {
+            return;
+        } else {
+            currentCounter = 0;
+        }
+
+        Map<String, Object> requestParameter = new HashMap<>();
+
         requestParameter.put("type", "location_info");
-        requestParameter.put("measured_data", beaconInfo);
+        requestParameter.put("timestamp", System.currentTimeMillis());
+        requestParameter.put("measured_data", rssiHolder.getData());
         ArrayList<Float> tmp = new ArrayList<>();
         tmp.add(0, prev_x);
         tmp.add(1, prev_y);
+        tmp.add(2, prev_est_uncert);
         requestParameter.put("previous_position", tmp);
         ArrayList<Float> tmp2 = new ArrayList<>();
         tmp2.add(0, prev2_x);
         tmp2.add(1, prev2_y);
+        tmp2.add(2, pre_prev_est_uncert);
         requestParameter.put("previous_position2", tmp2);
         requestParameter.put("beacon_type", currentBeaconCat);
 
-        jsonFingerprintRequestString = new JSONObject(requestParameter).toString();
+        Gson gson = new Gson(); // use Gson to convert complex LinkedHashMap to JSON.
+        String jsonFingerprintRequestString = gson.toJson(requestParameter);
         Log.d(TAG, jsonFingerprintRequestString);
 
         // Send intent for the next phase.
         final Intent sendAllValues = new Intent(LOCATOR_BROADCAST_ACTION);
         sendAllValues.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_TWO);
+        sendAllValues.putExtra("jsonFingerprintRequestString", jsonFingerprintRequestString);
         getApplicationContext().sendBroadcast(sendAllValues);
     }
 
     /**
      * Send the captured values to the server, and receive the calculated values.
      */
-    private void sendValues() {
+    private void sendValues(String requestString) {
         Log.d(TAG, "Sending values.");
 
         final String requestType = "application/json";
 
         AsyncHttpClient client = new AsyncHttpClient();
-        StringEntity json = new StringEntity(jsonFingerprintRequestString, "UTF-8");
+        StringEntity json = new StringEntity(requestString, "UTF-8");
         json.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, requestType));
 
         // Log.d(TAG, Globals.SERVER_BASE_API_URL + URL_ENDPOINT);
@@ -463,23 +517,13 @@ public class LocatorActivity extends AppCompatActivity {
             public void onSuccess(int statusCode, Header[] headers, JSONObject responseBody) {
                 // Successfully got a response
                 // If we didn't get a match, return.
+                JSONArray coordinates;
+                float uncert;
                 try {
                     if (responseBody.get("status").equals("no_match")) return;
-                } catch (JSONException e) {
-                    Log.e(TAG, "Unexpected JSON Exception.", e);
-                    return;
-                }
-
-                JSONArray coordinates;
-                try {
                     coordinates = responseBody.getJSONObject("content").getJSONArray("coordinates");
-                } catch (JSONException e) {
-                    Log.e(TAG, "Unexpected JSON Exception.", e);
-                    return;
-                }
-
-                try {
                     curr_floor = responseBody.getJSONObject("content").getString("floor");
+                    uncert = (float)responseBody.getJSONObject("content").getDouble("est_uncert");
                 } catch (JSONException e) {
                     Log.e(TAG, "Unexpected JSON Exception.", e);
                     return;
@@ -497,16 +541,14 @@ public class LocatorActivity extends AppCompatActivity {
 
                     mapView.thisTouchCoordinates[0] = (float)(double)coordinates.get(0);
                     mapView.thisTouchCoordinates[1] = (float)(double)coordinates.get(1);
+
+                    pre_prev_est_uncert = prev_est_uncert;
+                    prev_est_uncert = uncert;
                 } catch (JSONException e) {
                     Log.e(TAG, "Unexpected JSON Exception.", e);
                     return;
                 }
-                if(prev2_x != MapView.defaultCoord && prev_x != MapView.defaultCoord) {
-                    waitingForLocationDialog.dismiss();
-                    getApplicationContext().sendBroadcast(updateMapView);
-                } else {
-                    waitingForLocationDialog.show();
-                }
+                getApplicationContext().sendBroadcast(updateMapView);
             }
 
             @Override
@@ -539,10 +581,7 @@ public class LocatorActivity extends AppCompatActivity {
      * Clear the data holders.
      */
     private void clearMaps() {
-        usedBeaconRssiValues.clear();
-        requestParameter.clear();
-        beaconInfo.clear();
-        jsonFingerprintRequestString = "";
+        // usedBeaconRssiValues.clear();
     }
 
     /**
@@ -550,6 +589,8 @@ public class LocatorActivity extends AppCompatActivity {
      */
     private void clearInstantaneousData() {
         currentBeaconRssiValues.clear();
+        rssiHolder.clear();
+        currentCounter = 0;
     }
 
     /**
@@ -578,14 +619,27 @@ public class LocatorActivity extends AppCompatActivity {
 
             switch (target) {
                 case PHASE_ONE:
-                    processValues();
+                    final HashMap<Integer, Integer> useValues = (HashMap<Integer, Integer>)intentPayload.get("usedBeaconRssiValues");
+                    processValues(useValues);
                     break;
 
                 case PHASE_TWO:
-                    sendValues();
+                    final String jsonRequestString = intentPayload.getString("jsonFingerprintRequestString");
+                    sendValues(jsonRequestString);
                     break;
 
                 case PHASE_THREE:
+                    if(prev2_x != MapView.defaultCoord && prev_x != MapView.defaultCoord) {
+                        // if the previous coordinates are valid, dismiss the Snackbar
+                        waitingForLocationSnackbar.dismiss();
+                    } else if(!isLocationSnackbarShowing) {
+                        // if they aren't both valid, but the Snackbar isn't showing, show it and return
+                        waitingForLocationSnackbar.show();
+                        return;
+                    } else {
+                        // if they aren't both valid, and the Snackbar is showing, just return
+                        return;
+                    }
                     // Update coordinate text
                     Intent in = new Intent(MapView.COORDINATE_TEXT_UPDATE_BROADCAST);
                     context.sendBroadcast(in);
