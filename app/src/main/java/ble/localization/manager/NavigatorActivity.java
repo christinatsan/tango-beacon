@@ -1721,7 +1721,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
             public void onFailure(int statusCode, Header[] headers, Throwable error, JSONObject responseBody)
             {
                 // Request failed
-                Globals.showSnackbar(findViewById(android.R.id.content), "Sending location data failed. (Server response code: " + statusCode + ")");
+                Globals.showSnackbar(findViewById(android.R.id.content), "Sending location data failed. (" + error.getMessage().split(" ", 2)[0] + ")");
             }
 
             @Override
