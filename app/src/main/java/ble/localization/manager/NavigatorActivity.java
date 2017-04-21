@@ -1721,7 +1721,7 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
             public void onFailure(int statusCode, Header[] headers, Throwable error, JSONObject responseBody)
             {
                 // Request failed
-                Globals.showSnackbar(findViewById(android.R.id.content), "Sending location data failed. (" + error.getMessage().split(" ", 2)[0] + ")");
+                Globals.showSnackbar(findViewById(android.R.id.content), "Sending location data failed. (" + error.toString() + ")");
             }
 
             @Override
@@ -1762,15 +1762,15 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
      * @param y The new, current y.
      */
     private void updatePositionHolders(float x, float y, float est_uncert) {
-        prev2_x = prev_x;
-        prev2_y = prev_y;
+//        prev2_x = prev_x;
+//        prev2_y = prev_y;
 
-        prev_x = currPosition_floatX;
-        prev_y = currPosition_floatY;
+        prev2_x = currPosition_floatX;
+        prev2_y = currPosition_floatY;
 
-        currPosition.set((int)x, (int)y);
-        currPosition_floatX = x;
-        currPosition_floatY = y;
+        currPosition.set((int)x, (int)y);   // Point only accepts ints apparently.
+        currPosition_floatX = prev_x = x;
+        currPosition_floatY = prev_y = y;
 
         pre_prev_est_uncert = prev_est_uncert;
         prev_est_uncert = est_uncert;
