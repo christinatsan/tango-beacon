@@ -25,10 +25,10 @@ import android.widget.Toast;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
 
-import com.estimote.sdk.Beacon;
-import com.estimote.sdk.BeaconManager;
-import com.estimote.sdk.Region;
-import com.estimote.sdk.SystemRequirementsChecker;
+import com.estimote.coresdk.common.requirements.SystemRequirementsChecker;
+import com.estimote.coresdk.observation.region.beacon.BeaconRegion;
+import com.estimote.coresdk.recognition.packets.Beacon;
+import com.estimote.coresdk.service.BeaconManager;
 
 import com.google.gson.Gson;
 import com.loopj.android.http.AsyncHttpClient;
@@ -195,9 +195,9 @@ public class LocatorActivity extends AppCompatActivity {
         // Estimote SDK-related code
         locatingBeaconManager = new BeaconManager(this);
 
-        locatingBeaconManager.setRangingListener(new BeaconManager.RangingListener() {
+        locatingBeaconManager.setRangingListener(new BeaconManager.BeaconRangingListener() {
             @Override
-            public void onBeaconsDiscovered(Region region, List<Beacon> list) {
+            public void onBeaconsDiscovered(BeaconRegion region, List<Beacon> list) {
                 // Beacon discovery code during localization.
                 // TODO: What do we do if we don't detect any beacons?
                 for(Beacon b : list) {

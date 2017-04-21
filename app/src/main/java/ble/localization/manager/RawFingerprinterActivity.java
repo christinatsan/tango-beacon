@@ -20,11 +20,14 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
-import com.estimote.sdk.Beacon;
-import com.estimote.sdk.BeaconManager;
-import com.estimote.sdk.Region;
-import com.estimote.sdk.SystemRequirementsChecker;
+
+import com.estimote.coresdk.common.requirements.SystemRequirementsChecker;
+import com.estimote.coresdk.observation.region.beacon.BeaconRegion;
+import com.estimote.coresdk.recognition.packets.Beacon;
+import com.estimote.coresdk.service.BeaconManager;
+
 import com.jaredrummler.android.device.DeviceName;
+
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 
@@ -181,9 +184,9 @@ public class RawFingerprinterActivity extends AppCompatActivity {
         // Estimote SDK-related code.
         fingerprintingBeaconManager = new BeaconManager(this);
 
-        fingerprintingBeaconManager.setRangingListener(new BeaconManager.RangingListener() {
+        fingerprintingBeaconManager.setRangingListener(new BeaconManager.BeaconRangingListener() {
             @Override
-            public void onBeaconsDiscovered(Region region, List<Beacon> list) {
+            public void onBeaconsDiscovered(BeaconRegion region, List<Beacon> list) {
                 // Beacon discovery code during fingerprinting.
                 LinkedHashMap<Integer, Integer> majorRawValues = new LinkedHashMap<>();
 

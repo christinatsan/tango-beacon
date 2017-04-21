@@ -40,10 +40,11 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.estimote.sdk.Beacon;
-import com.estimote.sdk.BeaconManager;
-import com.estimote.sdk.Region;
-import com.estimote.sdk.SystemRequirementsChecker;
+import com.estimote.coresdk.common.requirements.SystemRequirementsChecker;
+import com.estimote.coresdk.observation.region.beacon.BeaconRegion;
+import com.estimote.coresdk.recognition.packets.Beacon;
+import com.estimote.coresdk.service.BeaconManager;
+
 import com.google.gson.Gson;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
@@ -313,9 +314,9 @@ public class NavigatorActivity extends AppCompatActivity implements View.OnClick
 
         locatingBeaconManager = new BeaconManager(this);
 
-        locatingBeaconManager.setRangingListener(new BeaconManager.RangingListener() {
+        locatingBeaconManager.setRangingListener(new BeaconManager.BeaconRangingListener() {
             @Override
-            public void onBeaconsDiscovered(Region region, List<Beacon> list) {
+            public void onBeaconsDiscovered(BeaconRegion region, List<Beacon> list) {
                 // Beacon discovery code during localization.
                 for(Beacon b : list) {
                     currentBeaconRssiValues.put(b.getMajor(), b.getRssi());
