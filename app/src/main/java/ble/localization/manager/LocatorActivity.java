@@ -440,6 +440,8 @@ public class LocatorActivity extends AppCompatActivity {
 
         if (valuesToBeUsed.size() == 0) return;
 
+        if (tapToLocateEnabled) return;
+
         if(!waitingForSufficientReadings.isShowing() && rssiHolder.isEmpty()) {
             waitingForSufficientReadings.setMessage(String.format("Please wait. Obtained 0/%d readings.", PreviousReadingHolder.NUMBER_OF_POSITIONS_TO_HOLD));
             waitingForSufficientReadings.show();
@@ -533,14 +535,11 @@ public class LocatorActivity extends AppCompatActivity {
                 final Intent updateMapView = new Intent(LOCATOR_BROADCAST_ACTION);
                 updateMapView.putExtra(Globals.PHASE_CHANGE_BROADCAST_PAYLOAD_KEY, localizationPhase.PHASE_THREE);
                 try {
-                    prev2_x = prev_x;
-                    prev2_y = prev_y;
+                    prev2_x = mapView.thisTouchCoordinates[0];
+                    prev2_y = mapView.thisTouchCoordinates[1];
 
-                    prev_x = mapView.thisTouchCoordinates[0];
-                    prev_y = mapView.thisTouchCoordinates[1];
-
-                    mapView.thisTouchCoordinates[0] = (float)(double)coordinates.get(0);
-                    mapView.thisTouchCoordinates[1] = (float)(double)coordinates.get(1);
+                    prev_x = mapView.thisTouchCoordinates[0] = (float)(double)coordinates.get(0);
+                    prev_y = mapView.thisTouchCoordinates[1] = (float)(double)coordinates.get(1);
 
                     pre_prev_est_uncert = prev_est_uncert;
                     prev_est_uncert = uncert;
@@ -555,7 +554,7 @@ public class LocatorActivity extends AppCompatActivity {
             public void onFailure(int statusCode, Header[] headers, Throwable error, JSONObject responseBody)
             {
                 // Request failed
-                Globals.showSnackbar(findViewById(android.R.id.content), "Sending location data failed. (" + error.getMessage().split(" ", 2)[0] + ")");
+                Globals.showSnackbar(findViewById(android.R.id.content), "Sending location data failed. (" + error.toString() + ")");
             }
 
             @Override
