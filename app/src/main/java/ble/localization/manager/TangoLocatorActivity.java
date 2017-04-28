@@ -27,12 +27,27 @@ import com.google.atap.tangoservice.TangoPointCloudData;
 import com.google.atap.tangoservice.TangoPoseData;
 import com.google.atap.tangoservice.TangoXyzIjData;
 
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
+import org.opencv.utils.Converters;
+
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Vector;
+
+import static org.opencv.core.CvType.CV_32FC1;
+import static org.opencv.imgproc.Imgproc.getAffineTransform;
 
 /**
  * Our locator.
  */
 public class TangoLocatorActivity extends AppCompatActivity {
+
+    static {
+        System.loadLibrary("opencv_java3");
+    }
 
     // Some general variables.
     private static final String TAG = "TangoLocatorActivity";
@@ -350,6 +365,8 @@ public class TangoLocatorActivity extends AppCompatActivity {
                             float currentX = translation[0];
                             float currentY = translation[1];
 
+                            align_coordinates(currentX, currentY);
+
                             mPositionString = "X:" + translation[0] + ", Y:" + translation[1] + ", Z:" + translation[2];
                             mZRotationString = String.valueOf(MathFunctions.getEulerAngleZ(orientation));
 
@@ -395,5 +412,74 @@ public class TangoLocatorActivity extends AppCompatActivity {
                 // We are not using onFrameAvailable for this application.
             }
         });
+    }
+
+    private void align_coordinates(float currentX, float currentY){
+        Point tango_coord1 = new Point(); // beacon 6708
+        tango_coord1.x = 4.32;
+        tango_coord1.y = -2.77;
+        Point tango_coord2 = new Point(); // beacon 38988
+        tango_coord2.x = 8.72;
+        tango_coord2.y = -4.17;
+        Point tango_coord3 = new Point(); // beacon 23110
+        tango_coord3.x = 10.61;
+        tango_coord3.y = -5.65;
+        List<Point> tangoList = new ArrayList<Point>();
+        tangoList.add(tango_coord1);
+        tangoList.add(tango_coord2);
+        tangoList.add(tango_coord3);
+
+        Point map_coord1 = new Point(); // beacon 6708
+        map_coord1.x = 777.21985;
+        map_coord1.y = 1502.6268;
+        Point map_coord2 = new Point(); // beacon 38988
+        map_coord2.x = 598.5553;
+        map_coord2.y = 2022.0793;
+        Point map_coord3 = new Point(); // beacon 23110
+        map_coord3.x = 250.12984;
+        map_coord3.y = 2336.1667;
+        List <Point> mapList = new ArrayList<Point>();
+        mapList.add(map_coord1);
+        mapList.add(map_coord2);
+        mapList.add(map_coord3);
+
+        MatOfPoint2f tangoPoints = new MatOfPoint2f();
+        tangoPoints.fromList(tangoList);
+        MatOfPoint2f mapPoints = new MatOfPoint2f();
+        mapPoints.fromList(mapList);
+
+        // get transformation matrix
+        Mat warp_mat = new Mat( 2, 3, CV_32FC1);
+        warp_mat = getAffineTransform(tangoPoints,mapPoints);
+
+        // get current location
+        Vector<Point> currentLocation = new Vector<Point>();
+        Point currentLocationPoint = new Point();
+        currentLocationPoint.x = currentX;
+        currentLocationPoint.y = currentY;
+        currentLocation.add(currentLocationPoint);
+
+        // convert current location point to a matrix
+        Mat pointWarp = Converters.vector_Point_to_Mat(currentLocation);
+
+        // result matrix has same dimensions as original point matrix
+        Mat resultMat = new Mat(pointWarp.rows(),pointWarp.cols(),CV_32FC1);
+
+        // do matrix multiplication to transform point: resultMat = pointWarp * warp_mat
+        Core.multiply(pointWarp,warp_mat,resultMat);
+
+        Log.d("resultMat",String.valueOf(resultMat));
+
+        // convert resultMat to a mat of points and get first (and only) point
+        MatOfPoint2f newLocationMat = new MatOfPoint2f(resultMat);
+        Point newLocationPoints[] = newLocationMat.toArray();
+        Point newLocationPoint = new Point();
+        newLocationPoint = newLocationPoints[0];
+
+        // new coordinates of aligned point
+        float newCurrentLocation_x = (float)newLocationPoint.x;
+        float newCurrentLocation_y = (float)newLocationPoint.y;
+
+
     }
 }
