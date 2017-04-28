@@ -6,6 +6,12 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -31,6 +37,14 @@
             android:launchMode="singleInstance"
             android:screenOrientation="portrait" />
         <activity
+            android:name=".TangoLocatorActivity"
+            android:label="Tango Locator"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".AdfUuidListViewActivity"
+            android:label="Tango ADF Manager"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".NavigatorActivity"
             android:label="BLE Navigator"
             android:launchMode="singleInstance"
@@ -38,7 +52,6 @@
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".LauncherActivity"
-            android:launchMode="singleInstance"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

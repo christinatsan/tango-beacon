@@ -10,18 +10,26 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
 
+import com.google.atap.tangoservice.Tango;
+
 public class LauncherActivity extends AppCompatActivity {
+
+    public static final int REQUEST_CODE_TANGO_PERMISSION = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_launcher);
 
+        startActivityForResult(
+                Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE), 0);
+
         final Button fp_go = (Button) findViewById(R.id.f_go);
         final Button fpr_go = (Button) findViewById(R.id.fr_go);
         final Button l_go = (Button) findViewById(R.id.l_go);
         final Button n_go = (Button) findViewById(R.id.n_go);
         final Button ap_go = (Button) findViewById(R.id.ap_go);
+        final Button l_go_tango = (Button) findViewById(R.id.l_go_tango);
 
         // final Spinner url_selector = (Spinner) findViewById(R.id.url_selector);
 
@@ -30,6 +38,7 @@ public class LauncherActivity extends AppCompatActivity {
         assert (l_go != null);
         assert (n_go != null);
         assert (ap_go != null);
+        assert (l_go_tango != null);
 
         fp_go.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -65,6 +74,16 @@ public class LauncherActivity extends AppCompatActivity {
                 Uri url = Uri.parse(Globals.SERVER_BASE_URL);
                 Intent launchBrowser = new Intent(Intent.ACTION_VIEW, url);
                 startActivity(launchBrowser);
+            }
+        });
+
+        l_go_tango.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent startAdfListViewIntent = new Intent(getApplicationContext(), AdfUuidListViewActivity.class);
+                startAdfListViewIntent.putExtra(AdfUuidListViewActivity.USE_AREA_LEARNING, false);
+                startAdfListViewIntent.putExtra(AdfUuidListViewActivity.LOAD_ADF, true);
+                startActivity(startAdfListViewIntent);
             }
         });
 
