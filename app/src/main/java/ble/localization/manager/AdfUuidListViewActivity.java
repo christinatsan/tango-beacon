@@ -49,6 +49,10 @@ public class AdfUuidListViewActivity extends Activity implements SetAdfNameDialo
     public static final String LOAD_ADF =
             "ble.localization.manager.loadadf";
 
+    final static String LAUNCH_COMMAND = "ble.localization.manager.AdfUuidListViewActivity.LAUNCH_COMMAND";
+    final static String START_LOCATOR = "ble.localization.manager.TangoLocatorActivity";
+    final static String START_NAVIGATOR = "ble.localization.manager.TangoNavigatorActivity";
+
     private ListView mTangoSpaceAdfListView, mAppSpaceAdfListView;
     private AdfUuidArrayAdapter mTangoSpaceAdfListAdapter, mAppSpaceAdfListAdapter;
     private ArrayList<AdfData> mTangoSpaceAdfDataList, mAppSpaceAdfDataList;
@@ -59,6 +63,7 @@ public class AdfUuidListViewActivity extends Activity implements SetAdfNameDialo
 
     private Boolean mIsUseAreaLearning = false;
     private Boolean mIsLoadAdf = false;
+    private String mLoadWhat = START_LOCATOR;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,6 +105,7 @@ public class AdfUuidListViewActivity extends Activity implements SetAdfNameDialo
 
         mIsUseAreaLearning = intent.getBooleanExtra(USE_AREA_LEARNING, false);
         mIsLoadAdf = intent.getBooleanExtra(LOAD_ADF, false);
+        mLoadWhat = intent.getStringExtra(LAUNCH_COMMAND);
     }
 
     @Override
@@ -279,7 +285,14 @@ public class AdfUuidListViewActivity extends Activity implements SetAdfNameDialo
 //        intent.putExtras(bundle);
 //        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
 
-        Intent intent = new Intent(AdfUuidListViewActivity.this, TangoLocatorActivity.class);
+        assert (mLoadWhat != null);
+
+        Intent intent;
+        if (mLoadWhat.equals(START_LOCATOR)) {
+            intent = new Intent(AdfUuidListViewActivity.this, TangoLocatorActivity.class);
+        } else { // if (mLoadWhat.equals(START_NAVIGATOR))
+            intent = new Intent(AdfUuidListViewActivity.this, TangoNavigatorActivity.class);
+        }
         intent.putExtra("uuidName",uuid);
         intent.putExtra(USE_AREA_LEARNING, mIsUseAreaLearning);
         intent.putExtra(LOAD_ADF, mIsLoadAdf);

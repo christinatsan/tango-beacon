@@ -27,6 +27,7 @@ public class LauncherActivity extends AppCompatActivity {
         final Button n_go = (Button) findViewById(R.id.n_go);
         final Button ap_go = (Button) findViewById(R.id.ap_go);
         final Button l_go_tango = (Button) findViewById(R.id.l_go_tango);
+        final Button n_go_tango = (Button) findViewById(R.id.n_go_tango);
 
         // final Spinner url_selector = (Spinner) findViewById(R.id.url_selector);
 
@@ -36,6 +37,7 @@ public class LauncherActivity extends AppCompatActivity {
         assert (n_go != null);
         assert (ap_go != null);
         assert (l_go_tango != null);
+        assert (n_go_tango != null);
 
         fp_go.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -80,6 +82,18 @@ public class LauncherActivity extends AppCompatActivity {
                 Intent startAdfListViewIntent = new Intent(getApplicationContext(), AdfUuidListViewActivity.class);
                 startAdfListViewIntent.putExtra(AdfUuidListViewActivity.USE_AREA_LEARNING, false);
                 startAdfListViewIntent.putExtra(AdfUuidListViewActivity.LOAD_ADF, true);
+                startAdfListViewIntent.putExtra(AdfUuidListViewActivity.LAUNCH_COMMAND, AdfUuidListViewActivity.START_LOCATOR);
+                startActivity(startAdfListViewIntent);
+            }
+        });
+
+        n_go_tango.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent startAdfListViewIntent = new Intent(getApplicationContext(), AdfUuidListViewActivity.class);
+                startAdfListViewIntent.putExtra(AdfUuidListViewActivity.USE_AREA_LEARNING, false);
+                startAdfListViewIntent.putExtra(AdfUuidListViewActivity.LOAD_ADF, true);
+                startAdfListViewIntent.putExtra(AdfUuidListViewActivity.LAUNCH_COMMAND, AdfUuidListViewActivity.START_NAVIGATOR);
                 startActivity(startAdfListViewIntent);
             }
         });
@@ -87,6 +101,7 @@ public class LauncherActivity extends AppCompatActivity {
         // disable the Tango-related buttons if this isn't a Tango device
         if(!Globals.isTangoDevice(getApplicationContext())) {
             l_go_tango.setEnabled(false);
+            n_go_tango.setEnabled(false);
         } else {
             startActivityForResult(
                     Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE), 0);
