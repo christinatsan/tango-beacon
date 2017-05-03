@@ -173,15 +173,15 @@ public class TangoLocatorActivity extends AppCompatActivity {
                         startupTango();
 
                     } catch (TangoOutOfDateException e) {
-                        Log.e(TAG, "Tango is out-of-date!", e);
+                        Log.e(TAG, getString(R.string.tango_out_of_date_exception), e);
                     } catch (TangoErrorException e) {
-                        Log.e(TAG, "A TangoErrorException was thrown!", e);
+                        Log.e(TAG, getString(R.string.tango_error), e);
                     } catch (TangoInvalidException e) {
-                        Log.e(TAG, "TangoInvalidException was thrown!", e);
+                        Log.e(TAG, getString(R.string.tango_invalid), e);
                     } catch (SecurityException e) {
                         // Area Learning permissions are required. If they are not available,
                         // SecurityException is thrown.
-                        Log.e(TAG, "Area Learning permissions are required.", e);
+                        Log.e(TAG, getString(R.string.no_permissions), e);
                     }
                 }
             }
