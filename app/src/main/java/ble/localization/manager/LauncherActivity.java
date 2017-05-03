@@ -21,9 +21,6 @@ public class LauncherActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_launcher);
 
-        startActivityForResult(
-                Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE), 0);
-
         final Button fp_go = (Button) findViewById(R.id.f_go);
         final Button fpr_go = (Button) findViewById(R.id.fr_go);
         final Button l_go = (Button) findViewById(R.id.l_go);
@@ -86,6 +83,14 @@ public class LauncherActivity extends AppCompatActivity {
                 startActivity(startAdfListViewIntent);
             }
         });
+
+        // disable the Tango-related buttons if this isn't a Tango device
+        if(!Globals.isTangoDevice(getApplicationContext())) {
+            l_go_tango.setEnabled(false);
+        } else {
+            startActivityForResult(
+                    Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE), 0);
+        }
 
 //        ArrayAdapter<String> url_adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, Globals.ALL_URLS);
 //        url_selector.setAdapter(url_adapter);

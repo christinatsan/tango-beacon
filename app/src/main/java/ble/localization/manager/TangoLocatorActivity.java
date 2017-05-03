@@ -117,6 +117,10 @@ public class TangoLocatorActivity extends AppCompatActivity {
             public void onClick(View v) {
                 // Switch the button between starting and stopping localization.
                 if(tapToLocateEnabled) {
+                    if (!checkLocateRequirements()) {
+                        Globals.showSnackbar(v, "Not a Tango device!");
+                        return;
+                    }
                     tapToLocateEnabled = false;
                     locateButton.setText("Stop Localization");
                 } else {
@@ -198,6 +202,11 @@ public class TangoLocatorActivity extends AppCompatActivity {
     @Override
     public void onDestroy() {
         super.onDestroy();
+    }
+
+    // Check if we've met the requirement to localize, and start the ranging service.
+    private boolean checkLocateRequirements() {
+        return Globals.isTangoDevice(getApplicationContext());
     }
 
     /**

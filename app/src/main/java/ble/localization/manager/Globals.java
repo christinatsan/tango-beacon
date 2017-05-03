@@ -2,6 +2,8 @@ package ble.localization.manager;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.view.View;
@@ -57,5 +59,19 @@ final class Globals {
                     }
                 })
                 .show();
+    }
+
+    static boolean isTangoDevice(Context context){
+        // currently, the best way to check if we have a Tango device
+        // if com.google.tango is NOT installed, this is not a Tango device
+        String tango_package_name= "com.google.tango";
+
+        PackageManager pm = context.getPackageManager();
+        try {
+            PackageInfo info = pm.getPackageInfo(tango_package_name, PackageManager.GET_META_DATA);
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
+        return true;
     }
 }
