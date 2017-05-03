@@ -1,7 +1,11 @@
 package ble.localization.manager;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -12,9 +16,15 @@ import android.widget.Spinner;
 
 import com.google.atap.tangoservice.Tango;
 
+import java.util.ArrayList;
+
 public class LauncherActivity extends AppCompatActivity {
 
     public static final int REQUEST_CODE_TANGO_PERMISSION = 0;
+    public static final int REQUEST_CODE_ALL_PERMISSIONS = 123;
+
+    Button l_go_tango;
+    Button n_go_tango;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,8 +36,8 @@ public class LauncherActivity extends AppCompatActivity {
         final Button l_go = (Button) findViewById(R.id.l_go);
         final Button n_go = (Button) findViewById(R.id.n_go);
         final Button ap_go = (Button) findViewById(R.id.ap_go);
-        final Button l_go_tango = (Button) findViewById(R.id.l_go_tango);
-        final Button n_go_tango = (Button) findViewById(R.id.n_go_tango);
+        l_go_tango = (Button) findViewById(R.id.l_go_tango);
+        n_go_tango = (Button) findViewById(R.id.n_go_tango);
 
         // final Spinner url_selector = (Spinner) findViewById(R.id.url_selector);
 
@@ -98,6 +108,16 @@ public class LauncherActivity extends AppCompatActivity {
             }
         });
 
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Globals.isTangoDevice(getApplicationContext())) {
+            ArrayList<String> permissions_needed = new ArrayList<>();
+            permissions_needed.add(Manifest.permission.CAMERA);
+            permissions_needed.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+            permissions_needed.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            permissions_needed.add(Manifest.permission.READ_PHONE_STATE);
+
+            requestPermissions((String[])permissions_needed.toArray(), REQUEST_CODE_ALL_PERMISSIONS);
+        }
+
         // disable the Tango-related buttons if this isn't a Tango device
         if(!Globals.isTangoDevice(getApplicationContext())) {
             l_go_tango.setEnabled(false);
@@ -123,5 +143,42 @@ public class LauncherActivity extends AppCompatActivity {
 //        });
 
 
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_CODE_ALL_PERMISSIONS:
+                if (grantResults.length > 0) {
+                    for (int i = 0; i < permissions.length; i++) {
+                        if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                            Globals.showSnackbar(findViewById(android.R.id.content),
+                                    "The permission " + permissions[i] + " has not been granted. It must be granted to use Tango features.");
+                            // disable Tango stuff if permission is denied
+                            l_go_tango.setEnabled(false);
+                            n_go_tango.setEnabled(false);
+                        }
+                    }
+                }
+                break;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // The result of the permission activity.
+        //
+        // Note that when the permission activity is dismissed, the HelloAreaDescriptionActivity's
+        // onResume() callback is called. As the TangoService is connected in the onResume()
+        // function, we do not call connect here.
+        //
+        // Check which request we're responding to
+        if (requestCode == REQUEST_CODE_TANGO_PERMISSION) {
+            // Make sure the request was successful
+            if (resultCode == RESULT_CANCELED) {
+                Globals.showSnackbar(findViewById(android.R.id.content), getApplicationContext().getString(R.string.arealearning_permission));
+                finish(); // TODO: Line needed?
+            }
+        }
     }
 }
