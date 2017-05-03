@@ -51,6 +51,11 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
+            android:name=".TangoNavigatorActivity"
+            android:label="Tango Navigator"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
             android:name=".LauncherActivity"
             android:screenOrientation="portrait">
             <intent-filter>
