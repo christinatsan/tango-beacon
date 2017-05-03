@@ -1,12 +1,13 @@
 package ble.localization.manager;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -87,6 +88,23 @@ public class TangoLocatorActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_locator_tango);
 
+        // we do a lot of checks beforehand, so we'll probably never call this, but it's good to have just in case
+        if(!checkLocateRequirements()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Not a Tango Device")
+                    .setMessage("The Tango Locator requires this device to be a Tango-enabled device. " +
+                            "This is not a Tango device; therefore, this app cannot be used.")
+                    .setCancelable(false)
+                    .setNeutralButton("Close", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            finish();
+                        }
+                    })
+                    .show();
+            return;
+        }
+
         resources = this.getResources();
 
         ProgressDialog loading_dialog = ProgressDialog.show(TangoLocatorActivity.this, "Loading map", "Please wait...", true);
@@ -117,10 +135,6 @@ public class TangoLocatorActivity extends AppCompatActivity {
             public void onClick(View v) {
                 // Switch the button between starting and stopping localization.
                 if(tapToLocateEnabled) {
-                    if (!checkLocateRequirements()) {
-                        Globals.showSnackbar(v, "Not a Tango device!");
-                        return;
-                    }
                     tapToLocateEnabled = false;
                     locateButton.setText("Stop Localization");
                 } else {

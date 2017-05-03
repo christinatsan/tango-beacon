@@ -213,6 +213,23 @@ public class TangoNavigatorActivity extends AppCompatActivity implements View.On
             return;
         }
 
+        // we do a lot of checks beforehand, so we'll probably never call this, but it's good to have just in case
+        if(!checkLocateRequirements()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Not a Tango Device")
+                    .setMessage("The Tango Navigator requires this device to be a Tango-enabled device. " +
+                            "This is not a Tango device; therefore, this app cannot be used.")
+                    .setCancelable(false)
+                    .setNeutralButton("Close", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            finish();
+                        }
+                    })
+                    .show();
+            return;
+        }
+
         // Load all of the checkpoint (QR code) data from the checkpoints.txt file in the assets folder.
         loadCheckpoints();
 
@@ -1138,10 +1155,6 @@ public class TangoNavigatorActivity extends AppCompatActivity implements View.On
     @SuppressLint("DefaultLocale")
     private boolean tryToToggleLocalization() {
         if(localizationIsDisabled) {
-            if (!checkLocateRequirements()) {
-                Globals.showSnackbar(findViewById(android.R.id.content), "Not a Tango device!");
-                return false;
-            }
             localizationIsDisabled = false;
             MenuItem localizingMI = menu.findItem(R.id.start_localizing);
             localizingMI.setTitle("Stop Localization");
