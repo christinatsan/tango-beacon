@@ -454,17 +454,6 @@ public class TangoLocatorActivity extends AppCompatActivity {
         Log.d("matrix result",String.valueOf(warp_mat));
 
         // get current location
-//        Vector<Point> currentLocation = new Vector<Point>();
-//        Point currentLocationPoint = new Point();
-//        currentLocationPoint.x = currentX;
-//        currentLocationPoint.y = currentY;
-//        currentLocation.add(currentLocationPoint);
-
-        // convert current location point to a matrix
-//        Mat pointWarp2 = new Mat(2,1,CV_64F);
-//        pointWarp2.put(1,1,currentX);
-//        pointWarp2.put(2,1,currentY);
-
         double a00_arr[] = warp_mat.get(0,0);
         double a00 = a00_arr[0];
 
@@ -485,27 +474,6 @@ public class TangoLocatorActivity extends AppCompatActivity {
 
         double x_point = a00*currentX + a01*currentY + b00;
         double y_point = a10*currentX + a11*currentY + b10;
-
-        //Mat pointWarp = Converters.vector_Point_to_Mat(currentLocation);
-
-//        Log.d("type",String.valueOf(pointWarp.type()));
-//        pointWarp.convertTo(pointWarp,CV_64F);
-//        Log.d("matrix result",String.valueOf(pointWarp));
-
-
-        // result matrix has same dimensions as original point matrix
-//        Mat resultMat = new Mat(pointWarp2.rows(),pointWarp2.cols(),CV_64F);
-//
-//        // do matrix multiplication to transform point: resultMat = pointWarp * warp_mat
-//        Core.multiply(pointWarp2,warp_mat,resultMat);
-//
-//        Log.d("resultMat",String.valueOf(resultMat));
-//
-//        // convert resultMat to a mat of points and get first (and only) point
-//        MatOfPoint2f newLocationMat = new MatOfPoint2f(resultMat);
-//        Point newLocationPoints[] = newLocationMat.toArray();
-//        Point newLocationPoint = new Point();
-//        newLocationPoint = newLocationPoints[0];
 
         // new coordinates of aligned point
         float newCurrentLocation_x = (float)x_point;
