@@ -119,7 +119,7 @@ public class LauncherActivity extends AppCompatActivity {
                 permissions_needed.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
                 permissions_needed.add(Manifest.permission.READ_PHONE_STATE);
 
-                requestPermissions((String[])permissions_needed.toArray(), REQUEST_CODE_ALL_PERMISSIONS);
+                requestPermissions(permissions_needed.toArray(new String[0]), REQUEST_CODE_ALL_PERMISSIONS);
             } else {
                 // else assume we have all the permissions and just obtain the ADF permission by itself
                 startActivityForResult(
