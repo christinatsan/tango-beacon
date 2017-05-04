@@ -20,6 +20,7 @@ import android.graphics.PointF;
 import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
@@ -53,6 +54,15 @@ import com.google.zxing.integration.android.IntentResult;
 
 import org.apache.commons.lang3.text.WordUtils;
 
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.utils.Converters;
+
+import static org.opencv.core.CvType.CV_32FC1;
+import static org.opencv.core.CvType.CV_64F;
+import static org.opencv.imgproc.Imgproc.getAffineTransform;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -69,6 +79,10 @@ import java.util.Set;
 import uk.co.senab.photoview.PhotoViewAttacher;
 
 public class TangoNavigatorActivity extends AppCompatActivity implements View.OnClickListener {
+
+    static {
+        System.loadLibrary("opencv_java3");
+    }
 
     // Initialize global variables
     private static final String TAG = "NavigatorActivity";
@@ -1549,7 +1563,7 @@ public class TangoNavigatorActivity extends AppCompatActivity implements View.On
     private float[] orientation;
 
     private double mPreviousPoseTimeStamp;
-    private static final double UPDATE_INTERVAL_MS = 100.0;
+    private static final double UPDATE_INTERVAL_MS = 1000.0;
     private double mTimeToNextUpdate = UPDATE_INTERVAL_MS;
 
     private boolean mIsRelocalized;
@@ -1568,6 +1582,9 @@ public class TangoNavigatorActivity extends AppCompatActivity implements View.On
     private String selectedUUID;
 
     private TangoPoseData currentPose;
+
+    float currentX;
+    float currentY;
 
     /**
      * Sets up the tango configuration object. Make sure mTango object is initialized before
@@ -1624,6 +1641,7 @@ public class TangoNavigatorActivity extends AppCompatActivity implements View.On
             public void onPoseAvailable(final TangoPoseData pose) {
                 // Make sure to have atomic access to Tango Data so that UI loop doesn't interfere
                 // while Pose call back is updating the data.
+
                 synchronized (mSharedLock) {
                     currentPose = pose;
                     Log.d(TAG, pose.toString());
@@ -1637,15 +1655,15 @@ public class TangoNavigatorActivity extends AppCompatActivity implements View.On
                         if (pose.statusCode == TangoPoseData.POSE_VALID) {
 
                             mIsRelocalized = true;
-                            Globals.showSnackbar(findViewById(android.R.id.content), "Localized.");
+                            // Globals.showSnackbar(findViewById(android.R.id.content), "Localized.");
 
                             translation = pose.getTranslationAsFloats();
                             orientation = pose.getRotationAsFloats();
 
                             // CURRENT LOCATION
 
-                            float currentX = translation[0];
-                            float currentY = translation[1];
+                            currentX = translation[0];
+                            currentY = translation[1];
 
                             mPositionString = "X:" + translation[0] + ", Y:" + translation[1] + ", Z:" + translation[2];
                             mZRotationString = String.valueOf(MathFunctions.getEulerAngleZ(orientation));
@@ -1654,21 +1672,30 @@ public class TangoNavigatorActivity extends AppCompatActivity implements View.On
                                     SECS_TO_MILLISECS;
                             mPreviousPoseTimeStamp = pose.timestamp;
                             mTimeToNextUpdate -= deltaTime;
-
-                            if (mTimeToNextUpdate < 0.0 && !localizationIsDisabled) {
-                                mTimeToNextUpdate = UPDATE_INTERVAL_MS;
-
-                                // Send the intent to complete the localization process.
-                                final Intent updateMapView = new Intent(LOCATOR_BROADCAST_ACTION);
-                                updateMapView.putExtra("x", currentX);
-                                updateMapView.putExtra("y", currentY);
-                                getApplicationContext().sendBroadcast(updateMapView);
-                            }
                         } else {
                             mIsRelocalized = false;
                             Globals.showSnackbar(findViewById(android.R.id.content), "Invalid pose data received.");
                         }
                     }
+                }
+
+                // TODO: Improve this!
+                if (mTimeToNextUpdate < 0.0 && !localizationIsDisabled) {
+                    mTimeToNextUpdate = UPDATE_INTERVAL_MS;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            synchronized (mSharedLock) {
+                                float[] results = align_coordinates(currentX, currentY);
+
+                                // Send the intent to complete the localization process.
+                                final Intent updateMapView = new Intent(LOCATOR_BROADCAST_ACTION);
+                                updateMapView.putExtra("x", results[0]);
+                                updateMapView.putExtra("y", results[1]);
+                                getApplicationContext().sendBroadcast(updateMapView);
+                            }
+                        }
+                    });
                 }
             }
 
@@ -1692,5 +1719,76 @@ public class TangoNavigatorActivity extends AppCompatActivity implements View.On
                 // We are not using onFrameAvailable for this application.
             }
         });
+    }
+
+    private float[] align_coordinates(float currentX, float currentY){
+        org.opencv.core.Point tango_coord1 = new org.opencv.core.Point(); // beacon 24540
+        tango_coord1.x = 0.55;
+        tango_coord1.y = -8.52;
+        org.opencv.core.Point tango_coord2 = new org.opencv.core.Point(); // beacon 6707
+        tango_coord2.x = -8.67;
+        tango_coord2.y = 5.57;
+        org.opencv.core.Point tango_coord3 = new org.opencv.core.Point(); // beacon 31905
+        tango_coord3.x = 10.87;
+        tango_coord3.y = 3.27;
+        List<org.opencv.core.Point> tangoList = new ArrayList<org.opencv.core.Point>();
+        tangoList.add(tango_coord1);
+        tangoList.add(tango_coord2);
+        tangoList.add(tango_coord3);
+
+        org.opencv.core.Point map_coord1 = new org.opencv.core.Point(); // beacon 24540
+        map_coord1.x = 228.04;
+        map_coord1.y = 840.05;
+        org.opencv.core.Point map_coord2 = new org.opencv.core.Point(); // beacon 6707
+        map_coord2.x = 2188.31;
+        map_coord2.y = 380.04;
+        org.opencv.core.Point map_coord3 = new org.opencv.core.Point(); // beacon 31905
+        map_coord3.x = 1298.49;
+        map_coord3.y = 2640.91;
+        List <org.opencv.core.Point> mapList = new ArrayList<org.opencv.core.Point>();
+        mapList.add(map_coord1);
+        mapList.add(map_coord2);
+        mapList.add(map_coord3);
+
+        MatOfPoint2f tangoPoints = new MatOfPoint2f();
+        tangoPoints.fromList(tangoList);
+        MatOfPoint2f mapPoints = new MatOfPoint2f();
+        mapPoints.fromList(mapList);
+
+        // get transformation matrix
+        Mat warp_mat = new Mat( 2, 3, CV_64F);
+        warp_mat = getAffineTransform(tangoPoints,mapPoints);
+        Log.d("matrix result",String.valueOf(warp_mat));
+
+        // get current location
+        double a00_arr[] = warp_mat.get(0,0);
+        double a00 = a00_arr[0];
+
+        double a01_arr[] = warp_mat.get(0,1);
+        double a01 = a01_arr[0];
+
+        double b00_arr[] = warp_mat.get(0,2);
+        double b00 = b00_arr[0];
+
+        double a10_arr[] = warp_mat.get(1,0);
+        double a10 = a10_arr[0];
+
+        double a11_arr[] = warp_mat.get(1,1);
+        double a11 = a11_arr[0];
+
+        double b10_arr[] = warp_mat.get(1,2);
+        double b10 = b10_arr[0];
+
+        double x_point = a00*currentX + a01*currentY + b00;
+        double y_point = a10*currentX + a11*currentY + b10;
+
+        // new coordinates of aligned point
+        float newCurrentLocation_x = (float)x_point;
+        float newCurrentLocation_y = (float)y_point;
+        Log.d("matrix result", Float.toString(newCurrentLocation_x));
+        Log.d("matrix result", Float.toString(newCurrentLocation_y));
+
+        return new float[]{newCurrentLocation_x, newCurrentLocation_y};
+
     }
 }

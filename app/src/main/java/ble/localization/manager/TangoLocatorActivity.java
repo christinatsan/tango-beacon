@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -368,7 +369,7 @@ public class TangoLocatorActivity extends AppCompatActivity {
                 // while Pose call back is updating the data.
                 synchronized (mSharedLock) {
                     currentPose = pose;
-                    Log.d(TAG, pose.toString());
+                    // Log.d(TAG, pose.toString());
 
                     // Check for Device wrt ADF pose, Device wrt Start of Service pose, Start of
                     // Service wrt ADF pose (This pose determines if the device is relocalized or
@@ -398,14 +399,7 @@ public class TangoLocatorActivity extends AppCompatActivity {
                             mTimeToNextUpdate -= deltaTime;
 
                             if (mTimeToNextUpdate < 0.0 && !tapToLocateEnabled) {
-                                float[] results = align_coordinates(currentX, currentY);
-                                mTimeToNextUpdate = UPDATE_INTERVAL_MS;
-
-                                // Send the intent to complete the localization process.
-                                final Intent updateMapView = new Intent(LOCATOR_BROADCAST_ACTION);
-                                updateMapView.putExtra("x", results[0]);
-                                updateMapView.putExtra("y", results[1]);
-                                getApplicationContext().sendBroadcast(updateMapView);
+                                new CoordUpdateTask().execute(currentX, currentY);
                             }
                         } else {
                             mIsRelocalized = false;
@@ -435,6 +429,22 @@ public class TangoLocatorActivity extends AppCompatActivity {
                 // We are not using onFrameAvailable for this application.
             }
         });
+    }
+
+    private class CoordUpdateTask extends AsyncTask<Float, Void, Void> {
+        @Override
+        protected Void doInBackground(Float... floats) {
+            float[] results = align_coordinates(floats[0], floats[1]);
+            mTimeToNextUpdate = UPDATE_INTERVAL_MS;
+
+            // Send the intent to complete the localization process.
+            final Intent updateMapView = new Intent(LOCATOR_BROADCAST_ACTION);
+            updateMapView.putExtra("x", results[0]);
+            updateMapView.putExtra("y", results[1]);
+            getApplicationContext().sendBroadcast(updateMapView);
+
+            return null;
+        }
     }
 
     private float[] align_coordinates(float currentX, float currentY){
