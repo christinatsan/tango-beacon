@@ -36,4 +36,5 @@ dependencies {
     compile 'com.google.code.gson:gson:2.8.0'
     compile files('libs/TangoSDK_Gankino_Java.jar')
     compile project(':tango_support_java_lib')
+    compile project(':opencv-java')
 }
