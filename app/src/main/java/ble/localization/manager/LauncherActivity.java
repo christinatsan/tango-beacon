@@ -108,23 +108,27 @@ public class LauncherActivity extends AppCompatActivity {
             }
         });
 
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Globals.isTangoDevice(getApplicationContext())) {
-            ArrayList<String> permissions_needed = new ArrayList<>();
-            permissions_needed.add(Manifest.permission.CAMERA);
-            permissions_needed.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-            permissions_needed.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-            permissions_needed.add(Manifest.permission.READ_PHONE_STATE);
+        // permissions
+        if (Globals.isTangoDevice(getApplicationContext())) {
+            // if we're running on a Tango device...
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                // if we're running M or higher, comply with the newer permissions model of explicitly requesting "dangerous" permissions
+                ArrayList<String> permissions_needed = new ArrayList<>();
+                permissions_needed.add(Manifest.permission.CAMERA);
+                permissions_needed.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+                permissions_needed.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                permissions_needed.add(Manifest.permission.READ_PHONE_STATE);
 
-            requestPermissions((String[])permissions_needed.toArray(), REQUEST_CODE_ALL_PERMISSIONS);
-        }
-
-        // disable the Tango-related buttons if this isn't a Tango device
-        if(!Globals.isTangoDevice(getApplicationContext())) {
+                requestPermissions((String[])permissions_needed.toArray(), REQUEST_CODE_ALL_PERMISSIONS);
+            } else {
+                // else assume we have all the permissions and just obtain the ADF permission by itself
+                startActivityForResult(
+                        Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE), 0);
+            }
+        } else {
+            // if not a Tango device, disable all Tango features
             l_go_tango.setEnabled(false);
             n_go_tango.setEnabled(false);
-        } else {
-            startActivityForResult(
-                    Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE), 0);
         }
 
 //        ArrayAdapter<String> url_adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, Globals.ALL_URLS);
@@ -160,6 +164,8 @@ public class LauncherActivity extends AppCompatActivity {
                         }
                     }
                 }
+                startActivityForResult(
+                        Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE), 0);
                 break;
         }
     }
