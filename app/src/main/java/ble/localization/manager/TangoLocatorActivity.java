@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Vector;
 
 import static org.opencv.core.CvType.CV_32FC1;
+import static org.opencv.core.CvType.CV_64F;
 import static org.opencv.imgproc.Imgproc.getAffineTransform;
 
 /**
@@ -355,7 +356,7 @@ public class TangoLocatorActivity extends AppCompatActivity {
                         if (pose.statusCode == TangoPoseData.POSE_VALID) {
 
                             mIsRelocalized = true;
-                            Globals.showSnackbar(findViewById(android.R.id.content), "Localized.");
+                            // Globals.showSnackbar(findViewById(android.R.id.content), "Localized.");
 
                             translation = pose.getTranslationAsFloats();
                             orientation = pose.getRotationAsFloats();
@@ -364,8 +365,6 @@ public class TangoLocatorActivity extends AppCompatActivity {
 
                             float currentX = translation[0];
                             float currentY = translation[1];
-
-                            align_coordinates(currentX, currentY);
 
                             mPositionString = "X:" + translation[0] + ", Y:" + translation[1] + ", Z:" + translation[2];
                             mZRotationString = String.valueOf(MathFunctions.getEulerAngleZ(orientation));
@@ -376,12 +375,13 @@ public class TangoLocatorActivity extends AppCompatActivity {
                             mTimeToNextUpdate -= deltaTime;
 
                             if (mTimeToNextUpdate < 0.0 && !tapToLocateEnabled) {
+                                float[] results = align_coordinates(currentX, currentY);
                                 mTimeToNextUpdate = UPDATE_INTERVAL_MS;
 
                                 // Send the intent to complete the localization process.
                                 final Intent updateMapView = new Intent(LOCATOR_BROADCAST_ACTION);
-                                updateMapView.putExtra("x", currentX);
-                                updateMapView.putExtra("y", currentY);
+                                updateMapView.putExtra("x", results[0]);
+                                updateMapView.putExtra("y", results[1]);
                                 getApplicationContext().sendBroadcast(updateMapView);
                             }
                         } else {
@@ -414,30 +414,30 @@ public class TangoLocatorActivity extends AppCompatActivity {
         });
     }
 
-    private void align_coordinates(float currentX, float currentY){
-        Point tango_coord1 = new Point(); // beacon 6708
-        tango_coord1.x = 4.32;
-        tango_coord1.y = -2.77;
-        Point tango_coord2 = new Point(); // beacon 38988
-        tango_coord2.x = 8.72;
-        tango_coord2.y = -4.17;
-        Point tango_coord3 = new Point(); // beacon 23110
-        tango_coord3.x = 10.61;
-        tango_coord3.y = -5.65;
+    private float[] align_coordinates(float currentX, float currentY){
+        Point tango_coord1 = new Point(); // beacon 24540
+        tango_coord1.x = 0.55;
+        tango_coord1.y = -8.52;
+        Point tango_coord2 = new Point(); // beacon 6707
+        tango_coord2.x = -8.67;
+        tango_coord2.y = 5.57;
+        Point tango_coord3 = new Point(); // beacon 31905
+        tango_coord3.x = 10.87;
+        tango_coord3.y = 3.27;
         List<Point> tangoList = new ArrayList<Point>();
         tangoList.add(tango_coord1);
         tangoList.add(tango_coord2);
         tangoList.add(tango_coord3);
 
-        Point map_coord1 = new Point(); // beacon 6708
-        map_coord1.x = 777.21985;
-        map_coord1.y = 1502.6268;
-        Point map_coord2 = new Point(); // beacon 38988
-        map_coord2.x = 598.5553;
-        map_coord2.y = 2022.0793;
-        Point map_coord3 = new Point(); // beacon 23110
-        map_coord3.x = 250.12984;
-        map_coord3.y = 2336.1667;
+        Point map_coord1 = new Point(); // beacon 24540
+        map_coord1.x = 228.04;
+        map_coord1.y = 840.05;
+        Point map_coord2 = new Point(); // beacon 6707
+        map_coord2.x = 2188.31;
+        map_coord2.y = 380.04;
+        Point map_coord3 = new Point(); // beacon 31905
+        map_coord3.x = 1298.49;
+        map_coord3.y = 2640.91;
         List <Point> mapList = new ArrayList<Point>();
         mapList.add(map_coord1);
         mapList.add(map_coord2);
@@ -449,37 +449,71 @@ public class TangoLocatorActivity extends AppCompatActivity {
         mapPoints.fromList(mapList);
 
         // get transformation matrix
-        Mat warp_mat = new Mat( 2, 3, CV_32FC1);
+        Mat warp_mat = new Mat( 2, 3, CV_64F);
         warp_mat = getAffineTransform(tangoPoints,mapPoints);
+        Log.d("matrix result",String.valueOf(warp_mat));
 
         // get current location
-        Vector<Point> currentLocation = new Vector<Point>();
-        Point currentLocationPoint = new Point();
-        currentLocationPoint.x = currentX;
-        currentLocationPoint.y = currentY;
-        currentLocation.add(currentLocationPoint);
+//        Vector<Point> currentLocation = new Vector<Point>();
+//        Point currentLocationPoint = new Point();
+//        currentLocationPoint.x = currentX;
+//        currentLocationPoint.y = currentY;
+//        currentLocation.add(currentLocationPoint);
 
         // convert current location point to a matrix
-        Mat pointWarp = Converters.vector_Point_to_Mat(currentLocation);
+//        Mat pointWarp2 = new Mat(2,1,CV_64F);
+//        pointWarp2.put(1,1,currentX);
+//        pointWarp2.put(2,1,currentY);
+
+        double a00_arr[] = warp_mat.get(0,0);
+        double a00 = a00_arr[0];
+
+        double a01_arr[] = warp_mat.get(0,1);
+        double a01 = a01_arr[0];
+
+        double b00_arr[] = warp_mat.get(0,2);
+        double b00 = b00_arr[0];
+
+        double a10_arr[] = warp_mat.get(1,0);
+        double a10 = a10_arr[0];
+
+        double a11_arr[] = warp_mat.get(1,1);
+        double a11 = a11_arr[0];
+
+        double b10_arr[] = warp_mat.get(1,2);
+        double b10 = b10_arr[0];
+
+        double x_point = a00*currentX + a01*currentY + b00;
+        double y_point = a10*currentX + a11*currentY + b10;
+
+        //Mat pointWarp = Converters.vector_Point_to_Mat(currentLocation);
+
+//        Log.d("type",String.valueOf(pointWarp.type()));
+//        pointWarp.convertTo(pointWarp,CV_64F);
+//        Log.d("matrix result",String.valueOf(pointWarp));
+
 
         // result matrix has same dimensions as original point matrix
-        Mat resultMat = new Mat(pointWarp.rows(),pointWarp.cols(),CV_32FC1);
-
-        // do matrix multiplication to transform point: resultMat = pointWarp * warp_mat
-        Core.multiply(pointWarp,warp_mat,resultMat);
-
-        Log.d("resultMat",String.valueOf(resultMat));
-
-        // convert resultMat to a mat of points and get first (and only) point
-        MatOfPoint2f newLocationMat = new MatOfPoint2f(resultMat);
-        Point newLocationPoints[] = newLocationMat.toArray();
-        Point newLocationPoint = new Point();
-        newLocationPoint = newLocationPoints[0];
+//        Mat resultMat = new Mat(pointWarp2.rows(),pointWarp2.cols(),CV_64F);
+//
+//        // do matrix multiplication to transform point: resultMat = pointWarp * warp_mat
+//        Core.multiply(pointWarp2,warp_mat,resultMat);
+//
+//        Log.d("resultMat",String.valueOf(resultMat));
+//
+//        // convert resultMat to a mat of points and get first (and only) point
+//        MatOfPoint2f newLocationMat = new MatOfPoint2f(resultMat);
+//        Point newLocationPoints[] = newLocationMat.toArray();
+//        Point newLocationPoint = new Point();
+//        newLocationPoint = newLocationPoints[0];
 
         // new coordinates of aligned point
-        float newCurrentLocation_x = (float)newLocationPoint.x;
-        float newCurrentLocation_y = (float)newLocationPoint.y;
+        float newCurrentLocation_x = (float)x_point;
+        float newCurrentLocation_y = (float)y_point;
+        Log.d("matrix result", Float.toString(newCurrentLocation_x));
+        Log.d("matrix result", Float.toString(newCurrentLocation_y));
 
+        return new float[]{newCurrentLocation_x, newCurrentLocation_y};
 
     }
 }
