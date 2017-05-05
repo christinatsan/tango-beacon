@@ -29,17 +29,13 @@ import com.google.atap.tangoservice.TangoPointCloudData;
 import com.google.atap.tangoservice.TangoPoseData;
 import com.google.atap.tangoservice.TangoXyzIjData;
 
-import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
-import org.opencv.utils.Converters;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
-import static org.opencv.core.CvType.CV_32FC1;
 import static org.opencv.core.CvType.CV_64F;
 import static org.opencv.imgproc.Imgproc.getAffineTransform;
 

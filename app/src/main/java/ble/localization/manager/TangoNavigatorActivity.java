@@ -20,7 +20,6 @@ import android.graphics.PointF;
 import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
@@ -53,15 +52,8 @@ import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
 import org.apache.commons.lang3.text.WordUtils;
-
-import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint2f;
-import org.opencv.utils.Converters;
-
-import static org.opencv.core.CvType.CV_32FC1;
-import static org.opencv.core.CvType.CV_64F;
-import static org.opencv.imgproc.Imgproc.getAffineTransform;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -77,6 +69,9 @@ import java.util.Map;
 import java.util.Set;
 
 import uk.co.senab.photoview.PhotoViewAttacher;
+
+import static org.opencv.core.CvType.CV_64F;
+import static org.opencv.imgproc.Imgproc.getAffineTransform;
 
 public class TangoNavigatorActivity extends AppCompatActivity implements View.OnClickListener {
 
