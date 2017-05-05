@@ -23,7 +23,7 @@ public class EnlargedCameraView extends Dialog {
         this.context = context;
         image_url = img_url;
         // this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        this.setContentView(R.layout.cameraview_enlarged);
+        this.setContentView(R.layout.dialog_cameraview_enlarged);
         cView = (CameraView) findViewById(R.id.enlargedCameraView);
         this.setTitle("Enlarged Camera View");
         this.setCancelable(false);

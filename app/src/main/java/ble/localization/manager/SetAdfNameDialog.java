@@ -54,7 +54,7 @@ public class SetAdfNameDialog extends DialogFragment {
     @Override
     public View onCreateView(LayoutInflater inflator, ViewGroup container,
                              Bundle savedInstanceState) {
-        View dialogView = inflator.inflate(R.layout.set_name_dialog, container, false);
+        View dialogView = inflator.inflate(R.layout.dialog_set_name, container, false);
         getDialog().setTitle(R.string.set_name_dialog_title);
         mNameEditText = (EditText) dialogView.findViewById(R.id.name);
         mUuidTextView = (TextView) dialogView.findViewById(R.id.uuidDisplay);

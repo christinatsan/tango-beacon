@@ -44,7 +44,7 @@ public class SaveAdfDialog extends AlertDialog {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.save_adf_dialog);
+        setContentView(R.layout.dialog_save_adf);
         setCancelable(false);
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
         if (mProgressBar == null) {
