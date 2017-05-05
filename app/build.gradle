@@ -22,13 +22,13 @@ android {
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:25.1.1'
+    compile 'com.android.support:appcompat-v7:25.3.0'
     compile 'com.davemorrissey.labs:subsampling-scale-image-view:3.6.0'
     compile 'com.estimote:sdk:1.0.2@aar'
     compile 'colt:colt:1.2.0'
     compile 'org.apache.commons:commons-lang3:3.5'
     compile 'com.loopj.android:android-async-http:1.4.9'
-    compile 'com.android.support:design:25.1.1'
+    compile 'com.android.support:design:25.3.0'
     compile 'com.jaredrummler:android-device-names:1.1.2'
     compile 'com.google.zxing:core:3.3.0'
     compile 'com.journeyapps:zxing-android-embedded:3.4.0@aar'
