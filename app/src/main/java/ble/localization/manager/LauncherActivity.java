@@ -130,23 +130,6 @@ public class LauncherActivity extends AppCompatActivity {
             l_go_tango.setEnabled(false);
             n_go_tango.setEnabled(false);
         }
-
-//        ArrayAdapter<String> url_adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, Globals.ALL_URLS);
-//        url_selector.setAdapter(url_adapter);
-//        url_selector.setSelection(Globals.DEFAULT_URL);
-//        url_selector.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-//            @Override
-//            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-//                Globals.SERVER_BASE_URL = Globals.ALL_URLS[position];
-//            }
-//
-//            @Override
-//            public void onNothingSelected(AdapterView<?> parent) {
-//
-//            }
-//        });
-
-
     }
 
     @Override
@@ -183,6 +166,9 @@ public class LauncherActivity extends AppCompatActivity {
             // Make sure the request was successful
             if (resultCode == RESULT_CANCELED) {
                 Globals.showSnackbar(findViewById(android.R.id.content), getApplicationContext().getString(R.string.arealearning_permission));
+                // if permissions denied, also disable Tango features since we can't really use them
+                l_go_tango.setEnabled(false);
+                n_go_tango.setEnabled(false);
                 finish(); // TODO: Line needed?
             }
         }
