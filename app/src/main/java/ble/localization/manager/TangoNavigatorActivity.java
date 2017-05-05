@@ -134,7 +134,7 @@ public class TangoNavigatorActivity extends AppCompatActivity implements View.On
     private measurementUnits[] enumListOfAllowedUnits = measurementUnits.values();
     private measurementUnits currUnits = measurementUnits.IMPERIAL; // use imperial as default
 
-    private static int allowedErrorInFeet = 1;
+    private static double allowedErrorInFeet = 1;
     private static final double feetPerStep = 2.4;
     private static final double feetPerMeter = 3.28084;
 
@@ -1529,14 +1529,14 @@ public class TangoNavigatorActivity extends AppCompatActivity implements View.On
         }
     }
 
-    private int currentAllowedError() {
+    private double currentAllowedError() {
         switch (currUnits) {
             case IMPERIAL:
                 return allowedErrorInFeet;
             case METRIC:
-                return (int)(allowedErrorInFeet / feetPerMeter);
+                return (allowedErrorInFeet / feetPerMeter);
             case STEPS:
-                return (int)(allowedErrorInFeet / feetPerStep);
+                return (allowedErrorInFeet / feetPerStep);
             default:    // shouldn't happen
                 return 0;
         }
@@ -1549,7 +1549,7 @@ public class TangoNavigatorActivity extends AppCompatActivity implements View.On
         @Override
         public void onReceive(Context context, Intent intent) {
             final Bundle intentPayload = intent.getExtras();
-            allowedErrorInFeet = (int)intentPayload.get("desired_error");
+            allowedErrorInFeet = intentPayload.getDouble("desired_error");
             // Toast.makeText(getApplicationContext(), "Allowed error changed to " + Integer.toString(allowedErrorInFeet) + "!", Toast.LENGTH_SHORT).show();
         }
     }

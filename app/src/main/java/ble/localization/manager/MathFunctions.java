@@ -2,6 +2,8 @@ package ble.localization.manager;
 
 import org.apache.commons.lang3.ArrayUtils;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 
 import cern.colt.list.DoubleArrayList;
@@ -30,6 +32,14 @@ final class MathFunctions {
      */
     static double doubleRound(double d, int decimalPlace) {
         return Math.round(d * Math.pow(10, decimalPlace)) / Math.pow(10, decimalPlace);
+    }
+
+    static double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        BigDecimal bd = new BigDecimal(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
     }
 
     /**

@@ -12,14 +12,14 @@ import android.widget.TextView;
 
 public class AllowedErrorModifierDialog extends Dialog {
 
-    private static String TAG = "AllowedErrorModifierDialog";
+    private static final String TAG = "AllowedErrorModifierDialog";
 
     private Context context;
 
     public AllowedErrorModifierDialog(final Context context,
                                       final double feetPerStep,
                                       final double feetPerMeter,
-                                      int currentAllowedError) {
+                                      double currentAllowedError) {
         super(context);
         this.context = context;
 
@@ -35,7 +35,7 @@ public class AllowedErrorModifierDialog extends Dialog {
         final TextView stepsLabel = (TextView) findViewById(R.id.stepslabel);
 
         final EditText eBox = (EditText) findViewById(R.id.errorinput);
-        eBox.setText(Integer.toString(currentAllowedError));
+        eBox.setText(Double.toString(currentAllowedError));
 
         int meters_now = (int)(currentAllowedError/feetPerMeter);
         int steps_now = (int)(currentAllowedError/feetPerStep);
@@ -51,17 +51,17 @@ public class AllowedErrorModifierDialog extends Dialog {
 
             @Override
             public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                int input = 0;
+                double input = 0;
                 try {
-                    input = Integer.parseInt(charSequence.toString());
+                    input = Double.parseDouble(charSequence.toString());
                 } catch (NumberFormatException e) {
                     return;
                 }
-                int meters_input = (int)(input/feetPerMeter);
-                int steps_input = (int)(input/feetPerStep);
+                double meters_input = MathFunctions.round(input/feetPerMeter, 2);
+                double steps_input = MathFunctions.round(input/feetPerStep, 2);
 
-                metersLabel.setText("Error (in meters): " + Integer.toString(meters_input));
-                stepsLabel.setText("Error (in steps): " + Integer.toString(steps_input));
+                metersLabel.setText("Error (in meters): " + Double.toString(meters_input));
+                stepsLabel.setText("Error (in steps): " + Double.toString(steps_input));
             }
 
             @Override
@@ -74,7 +74,7 @@ public class AllowedErrorModifierDialog extends Dialog {
             @Override
             public void onClick(View v) {
                 String e = eBox.getText().toString();
-                int ed = Integer.parseInt(e);
+                double ed = Double.parseDouble(e);
                 if(ed <= 0) return;
 
                 // Send to Navigator.

@@ -37,7 +37,7 @@
             android:layout_height="wrap_content"
             android:text="Enter new allowed error"
             android:id="@+id/errorinput"
-            android:inputType="number"/>
+            android:inputType="numberDecimal"/>
 
     </LinearLayout>
 
