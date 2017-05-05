@@ -129,7 +129,7 @@ public class TangoNavigatorActivity extends AppCompatActivity implements View.On
     private measurementUnits[] enumListOfAllowedUnits = measurementUnits.values();
     private measurementUnits currUnits = measurementUnits.IMPERIAL; // use imperial as default
 
-    private static double allowedErrorInFeet = 1;
+    private static double allowedErrorInFeet = 4.8;
     private static final double feetPerStep = 2.4;
     private static final double feetPerMeter = 3.28084;
 
