@@ -26,15 +26,11 @@ final class MathFunctions {
 
     /**
      * Rounds a double to the desired decimal place.
-     * @param d The number.
-     * @param decimalPlace The desired decimal place.
+     * @param value The number.
+     * @param places The desired decimal place.
      * @return The rounded number.
      */
-    static double doubleRound(double d, int decimalPlace) {
-        return Math.round(d * Math.pow(10, decimalPlace)) / Math.pow(10, decimalPlace);
-    }
-
-    static double round(double value, int places) {
+    static double doubleRound(double value, int places) {
         if (places < 0) throw new IllegalArgumentException();
 
         BigDecimal bd = new BigDecimal(value);

@@ -57,8 +57,8 @@ public class AllowedErrorModifierDialog extends Dialog {
                 } catch (NumberFormatException e) {
                     return;
                 }
-                double meters_input = MathFunctions.round(input/feetPerMeter, 2);
-                double steps_input = MathFunctions.round(input/feetPerStep, 2);
+                double meters_input = MathFunctions.doubleRound(input/feetPerMeter, 2);
+                double steps_input = MathFunctions.doubleRound(input/feetPerStep, 2);
 
                 metersLabel.setText("Error (in meters): " + Double.toString(meters_input));
                 stepsLabel.setText("Error (in steps): " + Double.toString(steps_input));
